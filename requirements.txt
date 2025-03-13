@@ -1,0 +1,6 @@
+transformers
+pytorch_lightning==1.5.9
+sentencepiece
+datasets
+seqeval
+nltk

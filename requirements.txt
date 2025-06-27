@@ -1,5 +1,5 @@
 transformers
-pytorch_lightning==1.5.9
+pytorch_lightning
 sentencepiece
 datasets
 seqeval

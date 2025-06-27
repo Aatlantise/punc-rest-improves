@@ -4,3 +4,6 @@ sentencepiece
 datasets
 seqeval
 nltk
+torch
+numpy
+tqdm

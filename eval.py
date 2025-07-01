@@ -475,9 +475,9 @@ def pr_score(texts, outputs, targets, printer=print):
 
         if len(s_tokens) != len(o_tokens) or len(s_tokens) != len(t_tokens):
             len_mismatch += 1
-            printer(
-                f"Found length mismatch between source {len(s_tokens)}, output {len(o_tokens)}, target {len(t_tokens)}\n")
-            printer("Skipping...")
+            # printer(
+            #     f"Found length mismatch between source {len(s_tokens)}, output {len(o_tokens)}, target {len(t_tokens)}\n")
+            # printer("Skipping...")
             min_len = min([len(s_tokens), len(o_tokens), len(t_tokens)])
             s_tokens = s_tokens[:min_len]
             o_tokens = o_tokens[:min_len]

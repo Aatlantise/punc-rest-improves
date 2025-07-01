@@ -26,9 +26,9 @@ Then, the following script performs training
 python main.py
 ```
 
-Tensorboard logs can be viewed by:
+Tensorboard logs can be viewed at [localhost:6006](localhost:6006) by:
 ```angular2html
-tensorboard --dir=outputs/logs/version_0 --host=0.0.0.0
+tensorboard --logdir=outputs/logs/version_0 --host=0.0.0.0
 ```
 
 If you're on GU CLI, refer to the [GU CLI remote dev guide](https://github.com/Aatlantise/gu-cli-remote-dev)

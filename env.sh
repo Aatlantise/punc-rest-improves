@@ -1,8 +1,4 @@
 #!/bin/bash
-module load anaconda3/3.11
-module load cuda/12.5
-nvcc --version
-source ../.virtualenv/pr/bin/activate
-python3 -V
-
+module load cuda/12.6 gcc arrow/19.0.1
+source /home/jm3743/virtualenvs/pr/bin/activate
 # needs to be run with source, not bash

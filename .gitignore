@@ -3,5 +3,5 @@ eval/*
 docker/*
 __pycache__
 outputs
-slurm-*
+slurm*.out
 punctuation_restoration_dataset.jsonl

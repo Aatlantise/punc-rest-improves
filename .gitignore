@@ -1,3 +1,7 @@
 .idea/*
 eval/*
 docker/*
+__pycache__
+outputs
+slurm-*
+punctuation_restoration_dataset.jsonl

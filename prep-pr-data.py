@@ -11,7 +11,6 @@ nltk.download('punkt_tab')
 # Constants
 MAX_WORDS = 150
 MAX_EXCERPTS = 450000
-OUTPUT_PATH = "punctuation_restoration_dataset.jsonl"
 
 def punctuations(lang):
     """A set of punctuations common to the selected language."""
@@ -54,7 +53,8 @@ def generate_punctuation_restoration_data(lang):
     """Stream Wikipedia dataset (doesn't download entire corpus)"""
     wikipedia_stream = load_dataset("wikipedia", "20231101." + lang, split="train", streaming=True)
     excerpt_count = 0
-    with open(OUTPUT_PATH, 'w', encoding='utf-8') as fout:
+    output_path = f"punct_restore_dataset_20231101.{lang}.jsonl"
+    with open(output_path, 'w', encoding='utf-8') as fout:
         for article in wikipedia_stream:
             text = article.get("text", "")
             if not text or len(text) < 200:
@@ -75,7 +75,7 @@ def generate_punctuation_restoration_data(lang):
 
                 excerpt_count += 1
                 if excerpt_count >= MAX_EXCERPTS:
-                    print(f"✅ Done: {excerpt_count} excerpts written to {OUTPUT_PATH}")
+                    print(f"✅ Done: {excerpt_count} excerpts written to {output_path}")
                     return
 
     print(f"⚠️ Only {excerpt_count} excerpts found (less than {MAX_EXCERPTS})")

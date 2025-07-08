@@ -41,13 +41,14 @@ def chunk_sentences(sentences, max_words=MAX_WORDS):
 
     return chunks
 
-def generate_punctuation_restoration_data():
-    # Stream Wikipedia dataset (doesn't download entire corpus)
-    wiki_stream = load_dataset("wikipedia", "20220301.en", split="train", streaming=True)
+def wikipedia_dataset(lang="en"):
+    """Stream Wikipedia dataset (doesn't download entire corpus)"""
+    return load_dataset("wikipedia", "20231101." + lang, split="train", streaming=True)
 
+def generate_punctuation_restoration_data():
     excerpt_count = 0
     with open(OUTPUT_PATH, 'w', encoding='utf-8') as fout:
-        for article in wiki_stream:
+        for article in wikipedia_dataset(lang="fr"):
             text = article.get("text", "")
             if not text or len(text) < 200:
                 continue

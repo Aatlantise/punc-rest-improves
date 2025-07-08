@@ -9,15 +9,23 @@ nltk.download('punkt')
 nltk.download('punkt_tab')
 
 # Constants
-PUNCTUATION_TO_REMOVE = {',', '.', '!', '?', '"', '’', '“', '”', "'"}
 MAX_WORDS = 150
 MAX_EXCERPTS = 450000
 OUTPUT_PATH = "punctuation_restoration_dataset.jsonl"
 
-def normalize_text(text):
-    """Lowercase and remove specific punctuation and capitalization."""
+def punctuations(lang):
+    """A set of punctuations common to the selected language."""
+    if lang == "en":
+        return {',', '.', '!', '?', '"', '’', '“', '”', "'"}
+    elif lang == "fr":
+        return {',', '.', '!', '?', '’', '«', '»', "'"}
+    else:
+        raise Exception(f"Language code {lang} has not been considered. ")
+
+def normalize_text(text, lang="en"):
+    """Lowercase and remove language-specific punctuation and capitalization."""
     text = text.lower()
-    return ''.join(ch for ch in text if ch not in PUNCTUATION_TO_REMOVE)
+    return ''.join(ch for ch in text if ch not in punctuations(lang))
 
 def chunk_sentences(sentences, max_words=MAX_WORDS):
     """Split sentences into non-overlapping chunks under max_words."""
@@ -41,14 +49,13 @@ def chunk_sentences(sentences, max_words=MAX_WORDS):
 
     return chunks
 
-def wikipedia_dataset(lang="en"):
-    """Stream Wikipedia dataset (doesn't download entire corpus)"""
-    return load_dataset("wikipedia", "20231101." + lang, split="train", streaming=True)
 
-def generate_punctuation_restoration_data():
+def generate_punctuation_restoration_data(lang):
+    """Stream Wikipedia dataset (doesn't download entire corpus)"""
+    wikipedia_stream = load_dataset("wikipedia", "20231101." + lang, split="train", streaming=True)
     excerpt_count = 0
     with open(OUTPUT_PATH, 'w', encoding='utf-8') as fout:
-        for article in wikipedia_dataset(lang="fr"):
+        for article in wikipedia_stream:
             text = article.get("text", "")
             if not text or len(text) < 200:
                 continue
@@ -74,4 +81,6 @@ def generate_punctuation_restoration_data():
     print(f"⚠️ Only {excerpt_count} excerpts found (less than {MAX_EXCERPTS})")
 
 if __name__ == "__main__":
-    generate_punctuation_restoration_data()
+    import sys
+    lang = sys.argv[1] if len(sys.argv > 1) else "en"
+    generate_punctuation_restoration_data(lang)

@@ -51,7 +51,7 @@ def chunk_sentences(sentences, max_words=MAX_WORDS):
 
 def generate_punctuation_restoration_data(lang):
     """Stream Wikipedia dataset (doesn't download entire corpus)"""
-    wikipedia_stream = load_dataset("wikipedia", "20231101." + lang, split="train", streaming=True)
+    wikipedia_stream = load_dataset("wikimedia/wikipedia", "20231101." + lang, split="train", streaming=True)
     excerpt_count = 0
     output_path = f"punct_restore_dataset_20231101.{lang}.jsonl"
     with open(output_path, 'w', encoding='utf-8') as fout:
@@ -82,5 +82,5 @@ def generate_punctuation_restoration_data(lang):
 
 if __name__ == "__main__":
     import sys
-    lang = sys.argv[1] if len(sys.argv > 1) else "en"
+    lang = sys.argv[1] if len(sys.argv) > 1 else "en"
     generate_punctuation_restoration_data(lang)

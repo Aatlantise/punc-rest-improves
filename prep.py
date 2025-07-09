@@ -17,7 +17,7 @@ def punctuations(lang):
     if lang == "en":
         return {',', '.', '!', '?', '"', '’', '“', '”', "'"}
     elif lang == "fr":
-        return {',', '.', '!', '?', '’', '«', '»', "'"}
+        return {',', '.', '!', '?', '’', '«', '»', "'", '-'}
     else:
         raise Exception(f"Language code {lang} has not been considered. ")
 
@@ -49,11 +49,10 @@ def chunk_sentences(sentences, max_words=MAX_WORDS):
     return chunks
 
 
-def generate_punctuation_restoration_data(lang):
+def generate_punctuation_restoration_data(lang, output_path):
     """Stream Wikipedia dataset (doesn't download entire corpus)"""
     wikipedia_stream = load_dataset("wikimedia/wikipedia", "20231101." + lang, split="train", streaming=True)
     excerpt_count = 0
-    output_path = f"punct_restore_dataset_20231101.{lang}.jsonl"
     with open(output_path, 'w', encoding='utf-8') as fout:
         for article in wikipedia_stream:
             text = article.get("text", "")
@@ -63,6 +62,7 @@ def generate_punctuation_restoration_data(lang):
             # Remove unwanted artifacts like reference tags
             text = re.sub(r'\[\d+\]', '', text)
             text = re.sub(r'\n+', ' ', text).strip()
+            text = re.sub(r' {2,}', ' ', text)
 
             sentences = sent_tokenize(text)
             chunks = chunk_sentences(sentences, max_words=MAX_WORDS)
@@ -79,8 +79,3 @@ def generate_punctuation_restoration_data(lang):
                     return
 
     print(f"⚠️ Only {excerpt_count} excerpts found (less than {MAX_EXCERPTS})")
-
-if __name__ == "__main__":
-    import sys
-    lang = sys.argv[1] if len(sys.argv) > 1 else "en"
-    generate_punctuation_restoration_data(lang)

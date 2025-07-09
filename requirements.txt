@@ -7,3 +7,4 @@ nltk
 torch
 numpy
 tqdm
+typer

@@ -6,5 +6,5 @@
 #SBATCH --time=24:0:0
 module load python gcc arrow
 source .env/bin/activate
-python main.py
+python main.py train punct_restore_dataset_20231101.fr.jsonl
 deactivate

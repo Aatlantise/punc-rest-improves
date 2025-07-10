@@ -4,7 +4,7 @@
 #SBATCH --gpus=1
 #SBATCH --mem=32G
 #SBATCH --time=24:0:0
-module load python gcc arrow
+module load arrow gcc openssl python
 source .env/bin/activate
 python main.py train punct_restore_dataset_20231101.fr.jsonl
 deactivate

@@ -23,25 +23,35 @@ def prep(
 
 @app.command(help="Train on a prepped dataset")
 def train(
-    dataset_path: Annotated[str, typer.Argument(
+    data_dir: Annotated[str, typer.Argument(
         help="Path to the prepped wikipedia jsonl dataset",
     )] = 'punctuation_restoration_dataset.jsonl',
-    model: Annotated[str, typer.Option(
+    max_epochs: Annotated[int, typer.Option(
+        "-e", '--max-epoch',
+        help="Max number of epochs"
+    )] = 3,
+    model_name_or_path: Annotated[str, typer.Option(
         "-m", "--model_name_or_path",
         help="Name of model or path to model",
     )] = 't5-base',
     output_path: Annotated[str, typer.Option(
         '-o', '--output_dir',
         help='Output directory of model'
-    )] = 'outputs'
+    )] = 'outputs',
+    seed: Annotated[int, typer.Option(
+        '-s', '--seed',
+        help='Seed'
+    )] = 42,
 ):
-    print(f"[INFO] Training {model} on dataset at {dataset_path} to {output_path}")
+    print(f"[INFO] Training {model_name_or_path} on dataset at {data_dir} to {output_path}")
     start = time.time()
     from train import run as train_on_data
     train_on_data(
-        data_dir=dataset_path,
-        model_name_or_path=model,
-        output_dir=output_path
+        data_dir=data_dir,
+        max_epochs=max_epochs,
+        model_name_or_path=model_name_or_path,
+        output_dir=output_path,
+        seed=seed,
     )
     end = time.time()
     duration = end - start

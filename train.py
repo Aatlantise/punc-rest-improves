@@ -92,24 +92,29 @@ class T5ClassificationHead(nn.Module):
 
 class PRT5(pl.LightningModule):
     def __init__(self,
-                 data_dir: str,
-                 model_name_or_path: str,
-                 learning_rate: float,
-                 weight_decay: float,
-                 adam_epsilon: float,
-                 warmup_steps: int,
-                 max_seq_length: int,
-                 train_batch_size: int,
-                 eval_batch_size: int,
-                 num_train_epochs: int,
-                 ):
+        data_dir: str,
+        model_name_or_path: str,
+        learning_rate: float,
+        weight_decay: float,
+        adam_epsilon: float,
+        warmup_steps: int,
+        max_seq_length: int,
+        train_batch_size: int,
+        eval_batch_size: int,
+        num_train_epochs: int,
+    ):
         super().__init__()
         self.save_hyperparameters()
 
         self.model = T5ForConditionalGeneration.from_pretrained(model_name_or_path)
         self.tokenizer = T5TokenizerFast.from_pretrained(model_name_or_path)
         self.test_dl = DataLoader(
-            get_punctuation_dataset(self.tokenizer, "test", self.hparams.max_seq_length, data_dir=data_dir),
+            get_punctuation_dataset(
+                self.tokenizer,
+                "test",
+                self.hparams.max_seq_length,
+                data_dir=data_dir
+            ),
             batch_size=self.hparams.eval_batch_size,
             num_workers=4,
         )
@@ -180,7 +185,11 @@ class PRT5(pl.LightningModule):
         return val_loss
 
     def configure_optimizers(self):
-        optimizer = AdamW(self.parameters(), lr=self.hparams.learning_rate, eps=self.hparams.adam_epsilon)
+        optimizer = AdamW(
+            self.parameters(),
+            lr=self.hparams.learning_rate,
+            eps=self.hparams.adam_epsilon
+        )
 
         num_training_steps = self.trainer.estimated_stepping_batches
         lr_scheduler = get_scheduler(

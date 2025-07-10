@@ -27,6 +27,7 @@ from transformers import (
 
 autograd.set_detect_anomaly(True)
 logger = logging.getLogger(__name__)
+torch.set_float32_matmul_precision('medium') # CC Graham Suggestion
 
 def flatten(nested_list: List[List[Any]]) -> List[Any]:
     """
@@ -66,10 +67,7 @@ def load_pr_dataset(data_dir):
     dev = data[a:b]
     test = data[b:]
 
-    return {"train": train,
-            "dev": dev,
-            "test": test
-            }
+    return {"train": train, "dev": dev, "test": test}
 
 class T5ClassificationHead(nn.Module):
     """
@@ -111,7 +109,7 @@ class PRT5(pl.LightningModule):
         self.model = T5ForConditionalGeneration.from_pretrained(model_name_or_path)
         self.tokenizer = T5TokenizerFast.from_pretrained(model_name_or_path)
         self.test_dl = DataLoader(
-            get_punctuation_dataset(data_dir, self.tokenizer, "test", self.hparams.max_seq_length),
+            get_punctuation_dataset(self.tokenizer, "test", self.hparams.max_seq_length, data_dir=data_dir),
             batch_size=self.hparams.eval_batch_size,
             num_workers=4,
         )
@@ -218,7 +216,8 @@ class PRT5(pl.LightningModule):
     def test_dataloader(self):
         return self.test_dl
 
-def get_punctuation_dataset(data_dir, tokenizer, split: str, max_len: int):
+
+def get_punctuation_dataset(tokenizer, split: str, max_len: int, data_dir='punctuation_restoration_dataset.jsonl'):
     # Load your dataset file, e.g., .pkl or .jsonl
     data = load_pr_dataset(data_dir)[split]  # or custom loading logic
 
@@ -272,14 +271,14 @@ def run(
     warmup_steps: int = 0,
     max_seq_length: int = 256,
     seed: int = 42,
-    precision: str = "bf16",  # or "32-true" for FP32
-    num_workers: int = 4,
+    precision: str = "bf16-mixed",  # or "32-true" for FP32
+    # num_workers: int = 4,
     accelerator: str = "gpu",
     devices: int = 1,
     save_top_k: int = 1,
     monitor_metric: str = "val_loss",
     log_every_n_steps: int = 10,
-    resume_from_checkpoint: str = None,
+    # resume_from_checkpoint: str = None,
 ):
     pl.seed_everything(seed)
     set_seed(seed)
@@ -333,7 +332,17 @@ def run(
         trainer.test(model)
 
 
-def generate(ckpt: Union[str, None], model, input_dataset, tokenizer, batch_size, max_len=256, num_beams=4, skip_special_tokens=True, shuffle=True):
+def generate(
+    ckpt: Union[str, None],
+    model,
+    input_dataset,
+    tokenizer,
+    batch_size,
+    max_len=256,
+    num_beams=4,
+    skip_special_tokens=True,
+    shuffle=True
+):
     if ckpt is not None:
         model = model.load_from_checkpoint(ckpt)
     dataloader = DataLoader(input_dataset, batch_size=batch_size, num_workers=8, shuffle=shuffle)
@@ -345,16 +354,26 @@ def generate(ckpt: Union[str, None], model, input_dataset, tokenizer, batch_size
     targets = []
     texts = []
     for batch in tqdm(dataloader):
-        outs = model.model.generate(input_ids=batch['source_ids'].to("cuda"),
-                                    attention_mask=batch['source_mask'].to("cuda"),
-                                    max_length=max_len, num_beams=num_beams
-                                    )
-        dec = [tokenizer.decode(ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=False).strip() for ids in
-               outs]
-        target = [tokenizer.decode(ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=False).strip()
-                  for ids in batch["target_ids"]]
-        text = [tokenizer.decode(ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=False).strip()
-                for ids in batch["source_ids"]]
+        outs = model.model.generate(
+            input_ids=batch['source_ids'].to("cuda"),
+            attention_mask=batch['source_mask'].to("cuda"),
+            max_length=max_len, num_beams=num_beams
+        )
+        dec = [tokenizer.decode(
+            ids,
+            skip_special_tokens=skip_special_tokens,
+            clean_up_tokenization_spaces=False
+        ).strip() for ids in outs]
+        target = [tokenizer.decode(
+            ids,
+            skip_special_tokens=skip_special_tokens,
+            clean_up_tokenization_spaces=False
+        ).strip() for ids in batch["target_ids"]]
+        text = [tokenizer.decode(
+            ids,
+            skip_special_tokens=skip_special_tokens,
+            clean_up_tokenization_spaces=False
+        ).strip() for ids in batch["source_ids"]]
         texts.extend(text)
         outputs.extend(dec)
         targets.extend(target)

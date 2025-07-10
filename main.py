@@ -1,4 +1,4 @@
-import time
+from time import ctime as now
 import typer
 from typing_extensions import Annotated
 
@@ -14,12 +14,10 @@ def prep(
         help="Language code for Wikipedia",
     )] = 'en',
 ):
-    print(f"[INFO] Writing dataset {lang} to {dataset_output}")
-    start = time.time()
+    print(f"[INFO] Writing dataset {lang} to {dataset_output} at {now()}")
     from prep import generate_punctuation_restoration_data as gen_pr_data
     gen_pr_data(lang, dataset_output)
-    end = time.time()
-    print(f"[INFO] Dataset writing completed after {(end - start) // 60 + 1} minutes")
+    print(f"[INFO] Dataset writing completed at {now()}")
 
 @app.command(help="Train on a prepped dataset")
 def train(
@@ -43,8 +41,7 @@ def train(
         help='Seed'
     )] = 42,
 ):
-    print(f"[INFO] Training {model_name_or_path} on dataset at {data_dir} to {output_path}")
-    start = time.time()
+    print(f"[INFO] Training {model_name_or_path} on dataset at {data_dir} to {output_path} at {now()}")
     from train import run as train_on_data
     train_on_data(
         data_dir=data_dir,
@@ -53,11 +50,7 @@ def train(
         output_dir=output_path,
         seed=seed,
     )
-    end = time.time()
-    duration = end - start
-    hours = duration // 3600
-    minutes = (duration - hours * 3600) // 60 + 1
-    print(f"[INFO] Model training completed after {hours} hours and {minutes} minutes")
+    print(f"[INFO] Model training completed at {now()}")
 
 if __name__ == "__main__":
     app()

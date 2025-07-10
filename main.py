@@ -14,10 +14,12 @@ def prep(
         help="Language code for Wikipedia",
     )] = 'en',
 ):
-    print(f"[INFO] Writing dataset {lang} to {dataset_output} at {now()}")
+    print(f"[INFO] Prepping dataset started {now()}")
+    print(f"[INFO] Language code is {lang}")
+    print(f"[INFO] Dataset output is {dataset_output}")
     from prep import generate_punctuation_restoration_data as gen_pr_data
     gen_pr_data(lang, dataset_output)
-    print(f"[INFO] Dataset writing completed at {now()}")
+    print(f"[INFO] Prepping dataset finished {now()}")
 
 @app.command(help="Train on a prepped dataset")
 def train(
@@ -41,7 +43,11 @@ def train(
         help='Seed'
     )] = 42,
 ):
-    print(f"[INFO] Training {model_name_or_path} on dataset at {data_dir} to {output_path} at {now()}")
+    print(f"[INFO] Model training started {now()}")
+    print(f"[INFO] Dataset input is {data_dir}")
+    print(f"[INFO] Seed is {seed}")
+    print(f"[INFO] Model is {model_name_or_path}")
+    print(f"[INFO] Output is {output_path}")
     from train import run as train_on_data
     train_on_data(
         data_dir=data_dir,
@@ -50,7 +56,7 @@ def train(
         output_dir=output_path,
         seed=seed,
     )
-    print(f"[INFO] Model training completed at {now()}")
+    print(f"[INFO] Model training finished {now()}")
 
 if __name__ == "__main__":
     app()

@@ -2,7 +2,7 @@
 eval/*
 docker/*
 __pycache__
-outputs
+output*
 core*
 slurm*.out
 *.jsonl

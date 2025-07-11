@@ -6,3 +6,4 @@ logs/
 outputs/
 punctuation_restoration_dataset.jsonl
 processed_conll_data.jsonl
+trained_PR_model/

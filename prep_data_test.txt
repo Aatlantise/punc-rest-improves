@@ -1,0 +1,7 @@
+/local/var/spool/slurmd/job29295268/slurm_script: line 11: ./myenv/bin/activate: No such file or directory
+[nltk_data] Downloading package punkt to /home/michaelz/nltk_data...
+[nltk_data]   Package punkt is already up-to-date!
+[nltk_data] Downloading package punkt_tab to
+[nltk_data]     /home/michaelz/nltk_data...
+[nltk_data]   Package punkt_tab is already up-to-date!
+✅ Done: 450000 excerpts written to punctuation_restoration_dataset.jsonl

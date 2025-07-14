@@ -4,11 +4,13 @@ import json
 class CoNLL2012:
 
     def __init__(self, split='train'):
-        self.data = load_dataset("ramybaly/conll2012", split=split)
-        self.pos_tags = self.data.features['pos_tags'].feature.names
+        self.data = load_dataset('ontonotes/conll2012_ontonotesv5', 'english_v4', split=split)
 
-    def label(self, i):
-        return self.pos_tags[i]
+    def tags(self, feature='srl_frames'):
+        return self.data.features[feature].feature.names
+
+    def label(self, i, feature='srl_frames'):
+        return self.tags(feature)[i]
 
     def dump_json(self, path='conll_2012.jsonl'):
         count = 0
@@ -23,4 +25,4 @@ class CoNLL2012:
 
 if __name__ == '__main__':
     ds = CoNLL2012()
-    ds.dump_json()
+    print(ds.data.features)

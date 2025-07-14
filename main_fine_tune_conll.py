@@ -360,16 +360,16 @@ def generate(ckpt: Union[str, None], model, input_dataset, tokenizer, batch_size
     targets = []
     texts = []
     for batch in tqdm(dataloader):
-        outs = model.model.generate(input_ids=batch['source_ids'].to("cuda"),
-                                    attention_mask=batch['source_mask'].to("cuda"),
+        outs = model.model.generate(input_ids=batch['input_ids'].to("cuda"),
+                                    attention_mask=batch['attention_mask'].to("cuda"),
                                     max_length=max_len, num_beams=num_beams
                                     )
         dec = [tokenizer.decode(ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=False).strip() for ids in
                outs]
         target = [tokenizer.decode(ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=False).strip()
-                  for ids in batch["target_ids"]]
+                  for ids in batch["labels"]]
         text = [tokenizer.decode(ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=False).strip()
-                for ids in batch["source_ids"]]
+                for ids in batch["input_ids"]]
         texts.extend(text)
         outputs.extend(dec)
         targets.extend(target)

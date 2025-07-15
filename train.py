@@ -37,27 +37,6 @@ def set_seed(seed: int):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-# tokenize dataset for training
-def tokenize(data, tokenizer, split: str, max_len: int):
-    def preprocess(example):
-        sources = tokenizer(
-            example['source'],
-            max_length=max_len,
-            truncation=True,
-            padding='max_length',
-        )
-        targets = tokenizer(
-            example['target'],
-            max_length=max_len,
-            truncation=True,
-            padding='max_length',
-        )
-        sources['labels'] = targets['input_ids']
-        return sources
-    ds = Dataset.from_list(data).map(preprocess, batched=True)
-    ds.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
-    return ds
-
 # split dataset for training, validating, and testing
 class DataForTraining:
     def __init__(self, jsonl_path: str):
@@ -142,7 +121,7 @@ class PRT5(pl.LightningModule):
     def forward(self, input_ids, attention_mask, labels=None):
         return self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
 
-    def training_step(self, batch, batch_idx):
+    def _generic_step(self, batch, logged_name='loss'):
         labels = batch['labels']
         labels[labels == self.tokenizer.pad_token_id] = -100
         outputs = self(
@@ -151,20 +130,14 @@ class PRT5(pl.LightningModule):
             labels=labels
         )
         loss = outputs.loss
-        self.log('train_loss', loss, prog_bar=True, sync_dist=True)
+        self.log(logged_name, loss, prog_bar=True, sync_dist=True)
         return loss
+
+    def training_step(self, batch, batch_idx):
+        return self._generic_step(batch, logged_name='train_loss')
     
     def validation_step(self, batch, batch_idx):
-        labels = batch['labels']
-        labels[labels == self.tokenizer.pad_token_id] = -100
-        outputs = self(
-            input_ids=batch['input_ids'],
-            attention_mask=batch['attention_mask'],
-            labels=labels
-        )
-        val_loss = outputs.loss
-        self.log('val_loss', val_loss, prog_bar=True, sync_dist=True)
-        return val_loss
+        return self._generic_step(batch, logged_name='val_loss')
     
     def test_step(self, batch, batch_idx):
         input_ids = batch['input_ids']

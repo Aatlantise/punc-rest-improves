@@ -49,16 +49,13 @@ class DataForTraining:
 
     def __init__(self, jsonl_path: str):
         """Read and split dataset in JSONL"""
-        logger.debug(f'opening jsonl {jsonl_path}')
         with open(jsonl_path) as jsonl_file:
             data = []
             for line in jsonl_file:
                 data.append(json.loads(line))
         l = len(data)
-        logger.debug(f'data has length {l}')
         a = int(l * 0.8)
         b = int(l * 0.9)
-        logger.debug('data has been split')
         self.data = {
             'train': data[:a],
             'dev': data[a:b],
@@ -82,15 +79,9 @@ class DataForTraining:
             )
             sources['labels'] = targets['input_ids']
             return sources
-        logger.debug('created dataset from list and preprocessing')
         ds = Dataset.from_list(self.data[split]).map(preprocess, batched=True)
-        logger.debug('setting dataset format')
         ds.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
-        logger.debug('initializing dataloader')
         dl = DataLoader(ds, batch_size=eval_batch_size, num_workers=num_workers, shuffle=True)
-        logger.debug(f'dl type {type(dl)}')
-        logger.debug(f'dl length {len(dl)}')
-        logger.debug(f'dl batch size {dl.batch_size}')
         return dl
 
 
@@ -111,7 +102,6 @@ class PRT5(lightning.LightningModule):
         weight_decay: float,
         epoch_end_result_path: str = 'test_predictions.jsonl',
     ):
-        logger.debug('calling init to pl.LightningModule')
         super().__init__()
         self.save_hyperparameters()
         self.model = T5ForConditionalGeneration.from_pretrained(model)
@@ -120,7 +110,6 @@ class PRT5(lightning.LightningModule):
         self.epoch_end_result_path = epoch_end_result_path
 
     def configure_optimizers(self):
-        logger.debug('configuring optimizer')
         optimizer = AdamW(
             self.parameters(), 
             lr=self.hparams.learning_rate, 
@@ -200,7 +189,6 @@ class PRT5(lightning.LightningModule):
                 }) + '\n')
 
     def _generic_dataloader(self, split: str):
-        logger.debug('requesting generic dataloader')
         return self.hparams.training_data.loader(
             split,
             tokenizer=self.tokenizer,
@@ -210,14 +198,13 @@ class PRT5(lightning.LightningModule):
         )
 
     def train_dataloader(self):
-        logger.debug('requesting train dataloader')
-        self._generic_dataloader(split='train')
+        return self._generic_dataloader(split='train')
 
     def val_dataloader(self):
-        self._generic_dataloader(split='dev')
+        return self._generic_dataloader(split='dev')
 
     def test_dataloader(self):
-        self._generic_dataloader(split='test')
+        return self._generic_dataloader(split='test')
 
 # train
 def run(
@@ -244,11 +231,8 @@ def run(
     weight_decay: float = 0.01,
 ):
     """Run training on data path"""
-    logger.debug('setting seed')
     set_seed(seed)
-    logger.debug(f'reading training data from {data_path}')
     training_data = DataForTraining(data_path)
-    logger.debug('initializing t5')
     model = PRT5(
         adam_epsilon=adam_epsilon,
         eval_batch_size=eval_batch_size,
@@ -262,7 +246,6 @@ def run(
         warmup_steps=warmup_steps,
         weight_decay=weight_decay,
     )
-    logger.debug('initializing trainer')
     trainer = lightning.Trainer(
         max_epochs=max_epochs,
         logger=TensorBoardLogger(save_dir=output_dir, name='logs'),
@@ -283,12 +266,8 @@ def run(
         log_every_n_steps=log_every_n_steps,
         default_root_dir=output_dir
     )
-    logger.debug('fitting model')
     trainer.fit(model) # pass ckpt_path='outputs/checkpoints' for resuming
-    logger.debug('testing model')
     trainer.test(model)
 
 if __name__ == '__main__':
-    logger.debug('start run')
     run(data_path='datasets/conll-2012-srl.jsonl')
-    logger.debug('end run')

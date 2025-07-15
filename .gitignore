@@ -4,4 +4,4 @@ docker/*
 **/*.jsonl
 __pycache__
 outputs
-*.o*
+*logs

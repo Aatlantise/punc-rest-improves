@@ -1,13 +1,15 @@
 #!/bin/bash
 
-#SBATCH --job-name="pr"
-#SBATCH --output="%x.o%j"
-#SBATCH --time=4:00:00
-#SBATCH --gpus-per-node=1
 #SBATCH --account=def-annielee
-#SBATCH --mail-user=jm3743@georgetown.edu
+#SBATCH --cpus-per-task=1
+#SBATCH --gpus-per-task=0
+#SBATCH --job-name="testing-conll-2012-data-prep"
+#SBATCH --mail-user=h39fang@uwaterloo.ca
 #SBATCH --mail-type=END,FAIL
+#SBATCH --mem=8G
+#SBATCH --output="%x.o%j"
+#SBATCH --time=5:00
 
 source env.sh
-python prep-pr-data.py
-python main.py
+pip install -r requirements.txt
+python prep_data/conll_2012.py --trust_remote_code

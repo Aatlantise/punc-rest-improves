@@ -1,4 +1,4 @@
 #!/bin/bash
-module load cuda/12.6 gcc arrow/19.0.1
-source /home/jm3743/virtualenvs/pr/bin/activate
-# needs to be run with source, not bash
+module load arrow cuda gcc python
+source .env/bin/activate # needs to be run with source, not bash
+# pip install -r requirements.txt # make sure all requirements are satisfied 

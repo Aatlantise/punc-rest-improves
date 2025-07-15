@@ -7,6 +7,7 @@ class CoNLL2012:
             'ontonotes/conll2012_ontonotesv5',
             'english_v4',
             split=split,
+            trust_remote_code=True,
             # streaming=True, # doesn't work since have to index 'sentences'
         )
 

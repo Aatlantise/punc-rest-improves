@@ -9,7 +9,7 @@ from typing import List, Any, Union
 from datasets import Dataset
 from eval import pr_score
 
-import lightning
+import lightning as pl
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
 

@@ -1,6 +1,4 @@
 from datasets import load_dataset
-import json
-from pprint import pprint
 
 class CoNLL2012:
 
@@ -20,13 +18,17 @@ class CoNLL2012:
         with open(path, 'w', encoding='utf-8') as file:
             for paragraph in self.data['sentences']:
                 for sentence in paragraph:
-                    source = ' '.join(sentence['words'])
+                    words = sentence['words']
+                    source = ' '.join(words)
                     target = ''
                     for srl_frame in sentence['srl_frames']:
-                        verb = srl_frame['verb']
-                        frames = srl_frame['frames']
-                        target += f'{verb}:({" ".join(frames)}) '
-                    file.write(json.dumps({"source": source, "target": target.rstrip()}) + '\n')
+                        target += f'({srl_frame["verb"]}: '
+                        for i in range(len(words)):
+                            bio_label = srl_frame['frames'][i]
+                            if bio_label != 'O':
+                                target += f'[{words[i]}: {bio_label}] '
+                        target = target.rstrip() + ') '
+                    file.write(f'{{"source": "{source}", "target": "{target.rstrip()}"}}\n')
                     count += 1
         print(f"[INFO] Wrote {count} examples to {path}")
 

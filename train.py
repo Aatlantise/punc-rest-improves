@@ -25,11 +25,13 @@ from transformers import (
     get_scheduler
 )
 
+
 autograd.set_detect_anomaly(True)
 logger = logging.getLogger(__name__)
 
-# set seed for all random components
+
 def set_seed(seed: int):
+    """Seed all random components"""
     random.seed(seed)
     np.random.seed(seed)
     pl.seed_everything(seed)
@@ -37,12 +39,17 @@ def set_seed(seed: int):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-# split dataset for training, validating, and testing
+
 class DataForTraining:
+    """Wraps datasets to provide dataloaders"""
+
     def __init__(self, jsonl_path: str):
+        """Read and split dataset in JSONL"""
+        logger.debug(f'opening jsonl {jsonl_path}')
         with open(jsonl_path) as jsonl_file:
             data = []
             for line in jsonl_file:
+                logger.debug(f'reading line {line}')
                 data.append(json.loads(line))
         l = len(data)
         a = int(l * 0.8)
@@ -54,6 +61,7 @@ class DataForTraining:
         }
 
     def loader(self, split: str, tokenizer, max_seq_length, eval_batch_size, num_workers):
+        """Dataloader for data with set tokenizer and other parameters"""
         def preprocess(example):
             sources = tokenizer(
                 example['source'],
@@ -73,8 +81,10 @@ class DataForTraining:
         ds.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
         return DataLoader(ds, batch_size=eval_batch_size, num_workers=num_workers)
 
-# PR-T5 model
+
 class PRT5(pl.LightningModule):
+    """PR-T5 model"""
+
     def __init__(self,
         adam_epsilon: float,
         eval_batch_size: int,
@@ -122,6 +132,7 @@ class PRT5(pl.LightningModule):
         return self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
 
     def _generic_step(self, batch, logged_name='loss'):
+        """Template step"""
         labels = batch['labels']
         labels[labels == self.tokenizer.pad_token_id] = -100
         outputs = self(
@@ -174,8 +185,6 @@ class PRT5(pl.LightningModule):
                 }) + '\n')
 
     def _generic_dataloader(self, split: str):
-        if not self.hparams.training_data:
-            raise Exception('Data not loaded!')
         return self.hparams.training_data.loader(
             split,
             tokenizer=self.tokenizer,
@@ -217,6 +226,7 @@ def run(
     warmup_steps: int = 0,
     weight_decay: float = 0.01,
 ):
+    """Run training on data path"""
     set_seed(seed)
     training_data = DataForTraining(data_path)
     model = PRT5(
@@ -256,4 +266,6 @@ def run(
     trainer.test(model)
 
 if __name__ == '__main__':
+    logger.debug('start run')
     run(data_path='datasets/conll-2012-srl.jsonl')
+    logger.debug('end run')

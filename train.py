@@ -209,7 +209,7 @@ def run(
     num_train_epochs: int = 3,
     num_workers: int = 4,
     output_dir = './outputs',
-    precision: str = 'bf16',
+    precision: str = 'transformer-engine',
     resume_from_checkpoint: str = None,
     save_top_k: int = 1,
     seed: int = 42,

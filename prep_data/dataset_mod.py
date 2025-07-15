@@ -10,16 +10,15 @@ class DatasetModule:
         """Loads dataset form hugging face"""
         self.data = load_dataset(trust_remote_code=True, **kwargs)
 
-    def features(self):
-        """List features for dataset"""
-        return self.data.features
-
     def src_tgt_pairs(self) -> Generator[tuple[str, str], None, None]:
         """A generator function of source-target pairs as examples of training data"""
         pass
 
     def to_json(self, filename:str=None) -> int:
-        """Output data to JSONL"""
+        """Output data to JSONL
+
+        Default path is `datasets` with the jsonl file named after the caller class.
+        """
         filename = filename or self.__class__.__name__
         path = 'datasets/' + filename + '.jsonl'
         num_lines = 0

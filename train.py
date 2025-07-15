@@ -8,9 +8,9 @@ import numpy as np
 from datasets import Dataset
 
 # Lightning
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
-from pytorch_lightning.loggers import TensorBoardLogger
+import lightning
+from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
+from lightning.pytorch.loggers import TensorBoardLogger
 
 # Torch
 import torch
@@ -25,16 +25,20 @@ from transformers import (
     get_scheduler
 )
 
-
-autograd.set_detect_anomaly(True)
+logging.basicConfig(
+    filename='log',
+    filemode='w',
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.DEBUG,
+)
 logger = logging.getLogger(__name__)
-
+autograd.set_detect_anomaly(True)
 
 def set_seed(seed: int):
     """Seed all random components"""
     random.seed(seed)
     np.random.seed(seed)
-    pl.seed_everything(seed)
+    lightning.seed_everything(seed)
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
@@ -49,11 +53,12 @@ class DataForTraining:
         with open(jsonl_path) as jsonl_file:
             data = []
             for line in jsonl_file:
-                logger.debug(f'reading line {line}')
                 data.append(json.loads(line))
         l = len(data)
+        logger.debug(f'data has length {l}')
         a = int(l * 0.8)
         b = int(l * 0.9)
+        logger.debug('data has been split')
         self.data = {
             'train': data[:a],
             'dev': data[a:b],
@@ -77,12 +82,19 @@ class DataForTraining:
             )
             sources['labels'] = targets['input_ids']
             return sources
+        logger.debug('created dataset from list and preprocessing')
         ds = Dataset.from_list(self.data[split]).map(preprocess, batched=True)
+        logger.debug('setting dataset format')
         ds.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
-        return DataLoader(ds, batch_size=eval_batch_size, num_workers=num_workers)
+        logger.debug('initializing dataloader')
+        dl = DataLoader(ds, batch_size=eval_batch_size, num_workers=num_workers, shuffle=True)
+        logger.debug(f'dl type {type(dl)}')
+        logger.debug(f'dl length {len(dl)}')
+        logger.debug(f'dl batch size {dl.batch_size}')
+        return dl
 
 
-class PRT5(pl.LightningModule):
+class PRT5(lightning.LightningModule):
     """PR-T5 model"""
 
     def __init__(self,
@@ -99,6 +111,7 @@ class PRT5(pl.LightningModule):
         weight_decay: float,
         epoch_end_result_path: str = 'test_predictions.jsonl',
     ):
+        logger.debug('calling init to pl.LightningModule')
         super().__init__()
         self.save_hyperparameters()
         self.model = T5ForConditionalGeneration.from_pretrained(model)
@@ -107,6 +120,7 @@ class PRT5(pl.LightningModule):
         self.epoch_end_result_path = epoch_end_result_path
 
     def configure_optimizers(self):
+        logger.debug('configuring optimizer')
         optimizer = AdamW(
             self.parameters(), 
             lr=self.hparams.learning_rate, 
@@ -170,6 +184,7 @@ class PRT5(pl.LightningModule):
         self.outputs += [{'predictions': predictions, 'targets': targets}]
 
     def on_test_epoch_end(self):
+        logger.debug('test epoch ended')
         all_predictions = []
         all_targets = []
         for output in self.outputs:
@@ -185,6 +200,7 @@ class PRT5(pl.LightningModule):
                 }) + '\n')
 
     def _generic_dataloader(self, split: str):
+        logger.debug('requesting generic dataloader')
         return self.hparams.training_data.loader(
             split,
             tokenizer=self.tokenizer,
@@ -194,6 +210,7 @@ class PRT5(pl.LightningModule):
         )
 
     def train_dataloader(self):
+        logger.debug('requesting train dataloader')
         self._generic_dataloader(split='train')
 
     def val_dataloader(self):
@@ -213,12 +230,12 @@ def run(
     log_every_n_steps: int = 10,
     max_epochs = 3,
     max_seq_length: int = 256,
-    model = 't5_base',
+    model = 'google-t5/t5-base',
     monitor_metric: str = 'val_loss',
     num_train_epochs: int = 3,
     num_workers: int = 4,
-    output_dir = './outputs',
-    precision: str = 'transformer-engine',
+    output_dir = 'outputs',
+    precision: str = 'bf16-mixed',
     resume_from_checkpoint: str = None,
     save_top_k: int = 1,
     seed: int = 42,
@@ -227,8 +244,11 @@ def run(
     weight_decay: float = 0.01,
 ):
     """Run training on data path"""
+    logger.debug('setting seed')
     set_seed(seed)
+    logger.debug(f'reading training data from {data_path}')
     training_data = DataForTraining(data_path)
+    logger.debug('initializing t5')
     model = PRT5(
         adam_epsilon=adam_epsilon,
         eval_batch_size=eval_batch_size,
@@ -242,7 +262,8 @@ def run(
         warmup_steps=warmup_steps,
         weight_decay=weight_decay,
     )
-    trainer = pl.Trainer(
+    logger.debug('initializing trainer')
+    trainer = lightning.Trainer(
         max_epochs=max_epochs,
         logger=TensorBoardLogger(save_dir=output_dir, name='logs'),
         callbacks=[
@@ -262,7 +283,9 @@ def run(
         log_every_n_steps=log_every_n_steps,
         default_root_dir=output_dir
     )
-    trainer.fit(model)
+    logger.debug('fitting model')
+    trainer.fit(model) # pass ckpt_path='outputs/checkpoints' for resuming
+    logger.debug('testing model')
     trainer.test(model)
 
 if __name__ == '__main__':

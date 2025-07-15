@@ -256,4 +256,4 @@ def run(
     trainer.test(model)
 
 if __name__ == '__main__':
-    run(data_path='conll_2012.jsonl')
+    run(data_path='datasets/conll-2012-srl.jsonl')

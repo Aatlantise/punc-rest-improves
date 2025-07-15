@@ -3,5 +3,6 @@ eval/*
 docker/*
 **/*.jsonl
 __pycache__
+datasets
 outputs
 *logs

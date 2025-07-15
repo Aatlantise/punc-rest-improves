@@ -14,7 +14,7 @@ class CoNLL2012:
     def features(self):
         return self.data.features
 
-    def dump_json(self, path='conll_2012.jsonl'):
+    def dump_json(self, path='datasets/conll-2012-srl.jsonl'):
         count = 0
         with open(path, 'w', encoding='utf-8') as file:
             for paragraph in self.data['sentences']:

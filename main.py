@@ -9,9 +9,9 @@ from typing import List, Any, Union
 from datasets import Dataset
 from eval import pr_score
 
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
-from pytorch_lightning.loggers import TensorBoardLogger
+import lightning
+from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
+from lightning.pytorch.loggers import TensorBoardLogger
 
 import torch
 from torch import autograd, nn
@@ -55,7 +55,7 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
 
 def load_pr_dataset():
-    with open("punctuation_restoration_dataset.jsonl") as f:
+    with open("datasets/wiki-20220301-en-pr.jsonl") as f:
         data = []
         for line in f:
             data.append(json.loads(line))

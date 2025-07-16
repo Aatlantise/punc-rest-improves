@@ -4,5 +4,6 @@ docker/*
 **/*.jsonl
 __pycache__
 datasets
+logs
 outputs
-*logs
+slurm/logs

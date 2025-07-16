@@ -282,7 +282,10 @@ def run(
         log_every_n_steps = log_every_n_steps,
         default_root_dir = output_dir
     )
-    trainer.fit(model)  # pass ckpt_path='outputs/checkpoints' for resuming
+    if resume_from_checkpoint:
+        trainer.fit(model, ckpt_path = resume_from_checkpoint)
+    else:
+        trainer.fit(model)
     trainer.test(model)
 
 

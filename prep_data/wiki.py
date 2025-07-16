@@ -47,8 +47,8 @@ class WikiPR(DatasetModule):
 
     def __init__(self):
         super().__init__(
-            path='wikipedia',
-            name='20220301.en',
+            path='wikimedia/wikipedia',
+            name='20231101.en',
             split='train',
             streaming=True
         )
@@ -73,4 +73,4 @@ if __name__ == "__main__":
     nltk.download('punkt')
     nltk.download('punkt_tab')
     ds = WikiPR()
-    ds.to_json('wiki-20220301-en-pr')
+    ds.to_json('wiki.en.20231101.pr')

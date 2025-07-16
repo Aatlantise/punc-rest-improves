@@ -8,7 +8,7 @@ class DatasetModule:
 
     def __init__(self, **kwargs) -> None:
         """Loads dataset form hugging face"""
-        self.data = load_dataset(trust_remote_code=True, **kwargs)
+        self.data = load_dataset(**kwargs)
 
     def src_tgt_pairs(self) -> Generator[tuple[str, str], None, None]:
         """A generator function of source-target pairs as examples of training data"""

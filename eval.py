@@ -612,12 +612,19 @@ def NER_eval(texts, outputs, targets, printer=print):
     total_gold = 0
     correct = 0
 
+    def clean_space(s:str):
+        # return [k.strip(' ') for k in s.strip(' ').strip(')').strip('(').strip(' ').split(') (')]
+        return [k for k in s.split(' ') if k != '']
+    
     for sent, o, t in zip(texts, outputs, targets):
-        a = [k for k in clean_split(o.lower()) if k != "()"]
+        a = [k for k in clean_space(o.lower()) if k != "()"]
         # ignore empty strings "()"
-        g = clean_split(t.lower())
+        g = clean_space(t.lower())
         attempts += len(a) # total number of predictions
         total_gold += len(g) # total number of labels
+        print("input: ", sent)
+        print("predicted labels: ", a)
+        print("gold labels: ", g)
 
         # use exact match
         correct += len([k for k in a if k in g])
@@ -632,6 +639,7 @@ def NER_eval(texts, outputs, targets, printer=print):
     f1 = 2 * p * r / (p + r)
     printer(f"Precision: {p}, recall: {r}, F1 score: {f1}\n")
     
+    printer("NER scores below:\n")
     for i in range(3):
         printer("Input text:    %s\n" % texts[i])
         printer("Actual NEs:    %s\n" % targets[i])

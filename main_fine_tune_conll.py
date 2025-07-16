@@ -105,6 +105,8 @@ class PRT5(pl.LightningModule):
                  ):
         super().__init__()
         self.save_hyperparameters()
+        
+        print(f"\n The model being used is {model_name_or_path} \n")
 
         self.model = T5ForConditionalGeneration.from_pretrained(model_name_or_path)
         self.tokenizer = T5TokenizerFast.from_pretrained(model_name_or_path)

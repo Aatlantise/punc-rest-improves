@@ -45,7 +45,7 @@ def set_seed(seed: int):
         torch.cuda.manual_seed_all(seed)
 
 
-class DataForTraining:
+class TrainingData:
     """Wraps datasets to provide dataloaders"""
     
     def __init__(self, jsonl_path: str):
@@ -107,7 +107,7 @@ class PRT5(lightning.LightningModule):
         num_train_epochs: int,
         num_workers: int,
         train_batch_size: int,
-        training_data: DataForTraining,
+        training_data: TrainingData,
         warmup_steps: int,
         weight_decay: float,
         epoch_end_result_path: str = 'test_predictions.jsonl',
@@ -190,7 +190,7 @@ class PRT5(lightning.LightningModule):
         for output in self.outputs:
             all_predictions.extend(output['predictions'])
             all_targets.extend(output['targets'])
-        all_sources = self.test_dl.dataset['source']
+        all_sources = self.train_dataloader().dataset['source']
         with open(self['epoch_end_result_path'], 'w') as f:
             for prediction, target, source in zip(all_predictions, all_targets, all_sources):
                 f.write(
@@ -249,7 +249,7 @@ def run(
     """Run training on data path"""
     torch.set_float32_matmul_precision('high')
     set_seed(seed)
-    training_data = DataForTraining(data_path)
+    training_data = TrainingData(data_path)
     model = PRT5(
         adam_epsilon = adam_epsilon,
         eval_batch_size = eval_batch_size,
@@ -281,7 +281,7 @@ def run(
         accelerator = accelerator,
         devices = devices,
         log_every_n_steps = log_every_n_steps,
-        default_root_dir = output_dir
+        default_root_dir = output_dir,
     )
     if resume_from_checkpoint:
         trainer.fit(model, ckpt_path = resume_from_checkpoint)
@@ -291,4 +291,4 @@ def run(
 
 
 if __name__ == '__main__':
-    run(data_path = 'datasets/conll-2012-srl.jsonl')
+    run(data_path = 'datasets/conll-2012-srl.jsonl', resume_from_checkpoint = "outputs/checkpoints/wiki-2022-pr.ckpt")

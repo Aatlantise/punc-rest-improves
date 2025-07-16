@@ -3,9 +3,9 @@ import os
 import random
 import json
 import numpy as np
-# from tqdm import tqdm
-# from typing import List, Any, Union
 from datasets import Dataset
+from tqdm import tqdm
+from typing import Callable
 
 # Lightning
 import lightning
@@ -221,9 +221,55 @@ class PRT5(LightningModule):
     
     def test_dataloader(self) -> DataLoader:
         return self._generic_dataloader(split = 'test')
+    
+    def decoder(
+        self,
+        skip_special_tokens: bool = True,
+        clean_up_tokenization_spaces: bool = False,
+    ) -> Callable[[str], str]:
+        def decode(ids):
+            return self.tokenizer.decode(
+                ids,
+                skip_special_tokens = skip_special_tokens,
+                clean_up_tokenization_spaces = clean_up_tokenization_spaces
+            ).strip()
+        return decode
+    
+    def generate(
+        self,
+        batch_size: int,
+        input_dataset: Dataset,
+        max_len: int = 256,
+        num_beams: int = 4,
+        num_workers: int = 8,
+        shuffle: bool = True,
+        skip_special_tokens: bool = True,
+    ) -> tuple[list[str], list[str], list[str]]:
+        self.model.eval()
+        model = self.to('cuda')
+        outputs = []
+        targets = []
+        texts = []
+        for batch in tqdm(DataLoader(
+            input_dataset,
+            batch_size = batch_size,
+            num_workers = num_workers,
+            shuffle = shuffle,
+        )):
+            outputs.extend(map(
+                self.decoder(skip_special_tokens),
+                model.model.generate(
+                    input_ids = batch['source_ids'].to('cuda'),
+                    attention_mask = batch['source_mask'].to('cuda'),
+                    max_length = max_len,
+                    num_beams = num_beams,
+                )
+            ))
+            targets.extend(map(self.decoder(skip_special_tokens), batch['target_ids']))
+            texts.extend(map(self.decoder(skip_special_tokens), batch['source_ids']))
+        return texts, outputs, targets
 
 
-# train
 def run(
     accelerator: str = 'gpu',
     adam_epsilon: float = 1e-8,
@@ -292,4 +338,7 @@ def run(
 
 
 if __name__ == '__main__':
-    run(data_path = 'datasets/conll-2012-srl.jsonl', resume_from_checkpoint = "outputs/checkpoints/wiki.en.2022.pr.ckpt")
+    run(
+        data_path = 'datasets/conll-2012-srl.jsonl',
+        resume_from_checkpoint = 'outputs/checkpoints/wiki.en.2022.pr.ckpt',
+    )

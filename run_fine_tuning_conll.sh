@@ -11,4 +11,4 @@
 
 module load python gcc arrow
 source ./myenv/bin/activate
-python main_fine_tune_conll.py --model_name_or_path trained_PR_model --output_dir outputs
+python main_fine_tune_conll.py --model_name_or_path trained_PR_model --output_dir outputs --NER_eval_flag

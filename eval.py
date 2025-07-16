@@ -614,7 +614,8 @@ def NER_eval(texts, outputs, targets, printer=print):
 
     def clean_space(s:str):
         # return [k.strip(' ') for k in s.strip(' ').strip(')').strip('(').strip(' ').split(') (')]
-        return [k for k in s.split(' ') if k != '']
+        result = [k for k in s.split(' ') if k != '']
+        return [k for k in result if k[-1] != ":"]
     
     for sent, o, t in zip(texts, outputs, targets):
         a = [k for k in clean_space(o.lower()) if k != "()"]

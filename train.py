@@ -9,6 +9,7 @@ from datasets import Dataset
 
 # Lightning
 import lightning
+from lightning import LightningModule, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
 
@@ -95,7 +96,7 @@ class TrainingData:
         return dl
 
 
-class PRT5(lightning.LightningModule):
+class PRT5(LightningModule):
     """PR-T5 model"""
     
     def __init__(
@@ -263,13 +264,13 @@ def run(
         warmup_steps = warmup_steps,
         weight_decay = weight_decay,
     )
-    trainer = lightning.Trainer(
+    trainer = Trainer(
         max_epochs = max_epochs,
         logger = TensorBoardLogger(save_dir = output_dir, name = 'logs'),
         callbacks = [
             ModelCheckpoint(
                 dirpath = os.path.join(output_dir, 'checkpoints'),
-                filename = '{epoch}-{val_loss:.4f}',
+                filename = 'fine_tuned_on_srl-{epoch}-{val_loss:.4f}',
                 save_top_k = save_top_k,
                 verbose = True,
                 monitor = monitor_metric,
@@ -291,4 +292,4 @@ def run(
 
 
 if __name__ == '__main__':
-    run(data_path = 'datasets/conll-2012-srl.jsonl', resume_from_checkpoint = "outputs/checkpoints/wiki-2022-pr.ckpt")
+    run(data_path = 'datasets/conll-2012-srl.jsonl', resume_from_checkpoint = "outputs/checkpoints/wiki.en.2022.pr.ckpt")

@@ -1,7 +1,7 @@
-from dataset_mod import DatasetModule
+from dataclasses import PrepData
 
 
-class CoNLL2012(DatasetModule):
+class CoNLL2012(PrepData):
 
     def __init__(self, split='train'):
         """Loads dataset form hugging face"""

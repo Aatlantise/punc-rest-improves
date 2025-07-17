@@ -1,4 +1,4 @@
-from dataset_mod import DatasetModule
+from dataclasses import PrepData
 import re
 from nltk.tokenize import sent_tokenize, word_tokenize
 import nltk
@@ -42,7 +42,7 @@ def chunk_sentences(sentences, max_words=MAX_WORDS):
     return chunks
 
 
-class WikiPR(DatasetModule):
+class WikiPR(PrepData):
     """English Wikipedia prepped for punctuation restoration"""
 
     def __init__(self):

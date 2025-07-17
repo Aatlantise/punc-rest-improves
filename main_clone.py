@@ -282,17 +282,18 @@ def run(
     set_seed(seed)
 
     # Model
-    model = PRT5(
-        model_name_or_path=model_name_or_path,
-        learning_rate=learning_rate,
-        weight_decay=weight_decay,
-        adam_epsilon=adam_epsilon,
-        warmup_steps=warmup_steps,
-        max_seq_length=max_seq_length,
-        train_batch_size=train_batch_size,
-        eval_batch_size=eval_batch_size,
-        num_train_epochs=max_epochs,
-    )
+    # model = PRT5(
+    #     model_name_or_path=model_name_or_path,
+    #     learning_rate=learning_rate,
+    #     weight_decay=weight_decay,
+    #     adam_epsilon=adam_epsilon,
+    #     warmup_steps=warmup_steps,
+    #     max_seq_length=max_seq_length,
+    #     train_batch_size=train_batch_size,
+    #     eval_batch_size=eval_batch_size,
+    #     num_train_epochs=max_epochs,
+    # )
+    model = PRT5.load_from_checkpoint('outputs/checkpoints/wiki.en.2022.pr.ckpt')
 
     # Logging
     logger = TensorBoardLogger(save_dir=output_dir, name="logs")
@@ -322,7 +323,7 @@ def run(
     )
 
     # Training
-    trainer.fit(model, ckpt_path='outputs/checkpoints/wiki.en.2022.pr.ckpt')
+    trainer.fit(model)
 
     # Optionally test on test set (implement test_dataloader in the module first)
     if hasattr(model, 'test_dataloader'):

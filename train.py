@@ -92,7 +92,7 @@ class TrainingData:
         
         ds = Dataset.from_list(self.data[split]).map(preprocess, batched = True)
         ds.set_format(type = 'torch', columns = ['input_ids', 'attention_mask', 'labels'])
-        dl = DataLoader(ds, batch_size = eval_batch_size, num_workers = num_workers, shuffle = True)
+        dl = DataLoader(ds, batch_size = eval_batch_size, num_workers = num_workers)
         return dl
 
 
@@ -334,7 +334,13 @@ def run(
         trainer.fit(model, ckpt_path = resume_from_checkpoint)
     else:
         trainer.fit(model)
-    trainer.test(model)
+    trainer.test(model, dataloaders = training_data.loader(
+        split = 'test',
+        tokenizer = model.tokenizer(),
+        max_seq_length = max_seq_length,
+        eval_batch_size = eval_batch_size,
+        num_workers = num_workers,
+    ))
 
 
 if __name__ == '__main__':

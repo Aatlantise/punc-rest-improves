@@ -6,7 +6,7 @@ import numpy as np
 import os
 import random
 
-from data import TrainData
+from data.modules import TrainData
 from datetime import datetime
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor

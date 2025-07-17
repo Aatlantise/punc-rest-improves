@@ -1,7 +1,9 @@
-from .dataclasses import PrepData
-import re
-from nltk.tokenize import sent_tokenize, word_tokenize
 import nltk
+import re
+
+from modules import PrepData
+from nltk.tokenize import sent_tokenize, word_tokenize
+
 
 # Constants
 PUNCTUATION_TO_REMOVE = {',', '.', '!', '?', '"', '’', '“', '”', "'"}

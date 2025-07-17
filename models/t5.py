@@ -2,7 +2,7 @@ import json
 import logging
 import torch
 
-from data import TrainData
+from data.modules import TrainData
 from lightning import LightningModule
 from torch.optim import AdamW
 from torch.utils.data import DataLoader

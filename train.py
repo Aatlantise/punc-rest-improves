@@ -107,17 +107,29 @@ def run(
     trainer.fit(model)
     logger.info('Fitted model')
     
-    trainer.test(model, dataloaders = training_data.loader(
-        split = 'test',
-        tokenizer = model.tokenizer(),
-        max_seq_length = max_seq_length,
-        eval_batch_size = eval_batch_size,
-        num_workers = num_workers,
-    ))
-    logger.info('Tested model')
+    final_ckpt_name = '%s-final.ckpt' % ckpt_filename
+    trainer.save_checkpoint(os.path.join(output_dir, 'checkpoints', final_ckpt_name))
+    logger.info(f'Saved model to {final_ckpt_name}')
+    
+    try:
+        trainer.test(model, dataloaders = training_data.loader(
+            split = 'test',
+            tokenizer = model.tokenizer(),
+            max_seq_length = max_seq_length,
+            eval_batch_size = eval_batch_size,
+            num_workers = num_workers,
+        ))
+        logger.info('Tested model')
+    except:
+        logger.info('Testing unsuccessful')
 
 if __name__ == '__main__':
     run(
+        data_path = 'outputs/datasets/wiki.en.20231101.pr.jsonl',
+        ckpt_filename = 'pr',
+    )
+    run(
         data_path = 'outputs/datasets/conll-2012-srl.jsonl',
-        resume_ckpt = 'outputs/checkpoints/pr-pretrain.ckpt',
+        resume_ckpt = 'outputs/checkpoints/pr-final.ckpt',
+        ckpt_filename = 'pr-srl',
     )

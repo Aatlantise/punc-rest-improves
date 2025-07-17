@@ -8,7 +8,8 @@ from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import (
-    PreTrainedModel, T5ForConditionalGeneration,
+    PreTrainedModel,
+    T5ForConditionalGeneration,
     T5TokenizerFast,
     get_scheduler,
 )
@@ -215,4 +216,3 @@ class PRT5(LightningModule):
     def _verify_data_stored(self):
         if self.training_data is None:
             raise Exception('PRT5 model has no stored TrainData data. Call .store_data() before using dataloaders!')
-    

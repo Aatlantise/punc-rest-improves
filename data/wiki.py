@@ -1,4 +1,4 @@
-from dataclasses import PrepData
+from .dataclasses import PrepData
 import re
 from nltk.tokenize import sent_tokenize, word_tokenize
 import nltk

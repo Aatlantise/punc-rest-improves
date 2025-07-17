@@ -1,15 +1,17 @@
+## Rex's refactor of main.py
+
 import lightning
 import logging
 import numpy as np
 import os
 import random
 
-from dataclasses import TrainData
+from data import TrainData
 from datetime import datetime
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
-from t5 import PRT5
+from models.t5 import PRT5
 
 # Torch
 import torch
@@ -73,10 +75,10 @@ def run(
         num_train_epochs = num_train_epochs,
         num_workers = num_workers,
         train_batch_size = train_batch_size,
-        training_data = training_data,
         warmup_steps = warmup_steps,
         weight_decay = weight_decay,
     )
+    model.store_data(training_data)
     logger.info('Initialized model')
     
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -116,6 +118,6 @@ def run(
 
 if __name__ == '__main__':
     run(
-        data_path = 'datasets/conll-2012-srl.jsonl',
-        resume_ckpt = 'outputs/checkpoints/wiki.en.2022.pr.ckpt',
+        data_path = 'outputs/datasets/conll-2012-srl.jsonl',
+        resume_ckpt = 'outputs/checkpoints/pr-pretrain.ckpt',
     )

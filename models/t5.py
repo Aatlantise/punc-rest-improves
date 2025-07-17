@@ -2,8 +2,7 @@ import json
 import logging
 import torch
 
-from dataclasses import TrainData
-from datasets import Dataset
+from data import TrainData
 from lightning import LightningModule
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
@@ -13,7 +12,7 @@ from transformers import (
     T5TokenizerFast,
     get_scheduler,
 )
-from typing import Callable
+from typing import Callable, Union
 
 logging.basicConfig(
     filename = 'logs/t5',
@@ -34,12 +33,11 @@ class PRT5(LightningModule):
         learning_rate: float,
         max_seq_length: int,
         num_train_epochs: int,
-        num_workers: int,
         train_batch_size: int,
-        training_data: TrainData,
         warmup_steps: int,
         weight_decay: float,
         epoch_end_result_path: str = 'test_predictions.jsonl',
+        num_workers: int = 4,
         model: str = 'google-t5/t5-base',
     ):
         super().__init__()
@@ -47,6 +45,7 @@ class PRT5(LightningModule):
         self.model = T5ForConditionalGeneration.from_pretrained(model)
         self.tokenizer = T5TokenizerFast.from_pretrained(model)
         self.outputs = []
+        self.training_data: Union[TrainData, None] = None
     
     def __getitem__(self, item: str) -> any:
         return getattr(self.hparams, item)
@@ -71,27 +70,69 @@ class PRT5(LightningModule):
             },
         }
     
+    def decoder(
+        self,
+        skip_special_tokens: bool = True,
+        clean_up_tokenization_spaces: bool = False,
+    ) -> Callable[[str], str]:
+        def decode(ids):
+            return self.tokenizer.decode(
+                ids,
+                skip_special_tokens = skip_special_tokens,
+                clean_up_tokenization_spaces = clean_up_tokenization_spaces
+            ).strip()
+        
+        return decode
+    
     def forward(self, input_ids, attention_mask, labels = None) -> PreTrainedModel:
         return self.model(input_ids = input_ids, attention_mask = attention_mask, labels = labels)
     
-    def _generic_step(self, batch, logged_name = 'loss') -> torch.Tensor:
-        """Template step"""
-        labels = batch['labels']
-        labels[labels == self.tokenizer.pad_token_id] = -100
-        outputs = self(
-            input_ids = batch['input_ids'],
-            attention_mask = batch['attention_mask'],
-            labels = labels
+    def generate(
+        self,
+        input_dataloader: DataLoader,
+        max_len: int = 256,
+        num_beams: int = 4,
+        skip_special_tokens: bool = True,
+    ) -> tuple[list[str], list[str], list[str]]:
+        self.model.eval()
+        return self.to('cuda')._generate(
+            input_dataloader,
+            max_len,
+            num_beams,
+            skip_special_tokens,
         )
-        loss = outputs.loss
-        self.log(logged_name, loss, prog_bar = True, sync_dist = True)
-        return loss
     
-    def training_step(self, batch, batch_idx) -> torch.Tensor:
-        return self._generic_step(batch, logged_name = 'train_loss')
+    def on_test_epoch_end(self):
+        logger.debug('test epoch ended')
+        all_predictions = []
+        all_targets = []
+        for output in self.outputs:
+            all_predictions.extend(output['predictions'])
+            all_targets.extend(output['targets'])
+        self._verify_data_stored()
+        all_sources = self.training_data.data['source']
+        with open(self['epoch_end_result_path'], 'w') as f:
+            for prediction, target, source in zip(all_predictions, all_targets, all_sources):
+                f.write(
+                    json.dumps(
+                        {
+                            'prediction': prediction,
+                            'target': target,
+                            'source': source,
+                        }
+                    ) + '\n'
+                )
+                
+    def save(self, path: str):
+        """Save model parameters to path"""
+        torch.save(self.state_dict(), path)
+        logger.info(f'Saved model to {path}')
     
-    def validation_step(self, batch, batch_idx) -> torch.Tensor:
-        return self._generic_step(batch, logged_name = 'val_loss')
+    def store_data(self, d: TrainData):
+        self.training_data = d
+        
+    def test_dataloader(self) -> DataLoader:
+        return self._generic_dataloader(split = 'test')
     
     def test_step(self, batch, batch_idx):
         input_ids = batch['input_ids']
@@ -111,86 +152,32 @@ class PRT5(LightningModule):
         targets = self.tokenizer.batch_decode(labels, skip_special_tokens = True)
         
         self.outputs += [{'predictions': predictions, 'targets': targets}]
-    
-    def on_test_epoch_end(self):
-        logger.debug('test epoch ended')
-        all_predictions = []
-        all_targets = []
-        for output in self.outputs:
-            all_predictions.extend(output['predictions'])
-            all_targets.extend(output['targets'])
-        all_sources = self.train_dataloader().dataset['source']
-        with open(self['epoch_end_result_path'], 'w') as f:
-            for prediction, target, source in zip(all_predictions, all_targets, all_sources):
-                f.write(
-                    json.dumps(
-                        {
-                            'prediction': prediction,
-                            'target': target,
-                            'source': source,
-                        }
-                    ) + '\n'
-                )
-    
-    def _generic_dataloader(self, split: str) -> DataLoader:
-        return self['training_data'].loader(
-            split,
-            tokenizer = self.tokenizer,
-            eval_batch_size = self['eval_batch_size'],
-            max_seq_length = self['max_seq_length'],
-            num_workers = self['num_workers']
-        )
-    
+        
     def train_dataloader(self) -> DataLoader:
         return self._generic_dataloader(split = 'train')
+    
+    def training_step(self, batch, batch_idx) -> torch.Tensor:
+        return self._generic_step(batch, logged_name = 'train_loss')
     
     def val_dataloader(self) -> DataLoader:
         return self._generic_dataloader(split = 'dev')
     
-    def test_dataloader(self) -> DataLoader:
-        return self._generic_dataloader(split = 'test')
+    def validation_step(self, batch, batch_idx) -> torch.Tensor:
+        return self._generic_step(batch, logged_name = 'val_loss')
     
-    def decoder(
+    def _generate(
         self,
-        skip_special_tokens: bool = True,
-        clean_up_tokenization_spaces: bool = False,
-    ) -> Callable[[str], str]:
-        def decode(ids):
-            return self.tokenizer.decode(
-                ids,
-                skip_special_tokens = skip_special_tokens,
-                clean_up_tokenization_spaces = clean_up_tokenization_spaces
-            ).strip()
-        
-        return decode
-    
-    def generate(
-        self,
-        batch_size: int,
-        input_dataset: Dataset,
-        max_len: int = 256,
-        num_beams: int = 4,
-        num_workers: int = 8,
-        shuffle: bool = True,
-        skip_special_tokens: bool = True,
+        input_dataloader,
+        max_len,
+        num_beams,
+        skip_special_tokens,
     ) -> tuple[list[str], list[str], list[str]]:
-        self.model.eval()
-        model = self.to('cuda')
-        outputs = []
-        targets = []
-        texts = []
-        for batch in tqdm(
-            DataLoader(
-                input_dataset,
-                batch_size = batch_size,
-                num_workers = num_workers,
-                shuffle = shuffle,
-            )
-        ):
+        outputs, targets, texts = [], [], []
+        for batch in tqdm(input_dataloader):
             outputs.extend(
                 map(
                     self.decoder(skip_special_tokens),
-                    model.model.generate(
+                    self.model.generate(
                         input_ids = batch['input_ids'].to('cuda'),
                         attention_mask = batch['attention_mask'].to('cuda'),
                         max_length = max_len,
@@ -202,7 +189,30 @@ class PRT5(LightningModule):
             texts.extend(map(self.decoder(skip_special_tokens), batch['input_ids']))
         return texts, outputs, targets
     
-    def save(self, path: str):
-        """Save model parameters to path"""
-        torch.save(self.state_dict(), path)
-        logger.info(f'Saved model to {path}')
+    def _generic_dataloader(self, split: str) -> DataLoader:
+        self._verify_data_stored()
+        return self.training_data.loader(
+            split,
+            tokenizer = self.tokenizer,
+            eval_batch_size = self['eval_batch_size'],
+            max_seq_length = self['max_seq_length'],
+            num_workers = self['num_workers'],
+        )
+    
+    def _generic_step(self, batch, logged_name = 'loss') -> torch.Tensor:
+        """Template step"""
+        labels = batch['labels']
+        labels[labels == self.tokenizer.pad_token_id] = -100
+        outputs = self(
+            input_ids = batch['input_ids'],
+            attention_mask = batch['attention_mask'],
+            labels = labels
+        )
+        loss = outputs.loss
+        self.log(logged_name, loss, prog_bar = True, sync_dist = True)
+        return loss
+    
+    def _verify_data_stored(self):
+        if self.training_data is None:
+            raise Exception('PRT5 model has no stored TrainData data. Call .store_data() before using dataloaders!')
+    

@@ -1,4 +1,4 @@
-from dataclasses import PrepData
+from .dataclasses import PrepData
 
 
 class CoNLL2012(PrepData):

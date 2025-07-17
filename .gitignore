@@ -3,7 +3,6 @@ eval/*
 docker/*
 **/*.jsonl
 __pycache__
-datasets
 logs
 outputs
 slurm/logs

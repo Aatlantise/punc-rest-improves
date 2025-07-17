@@ -55,7 +55,7 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
 
 def load_pr_dataset():
-    with open("datasets/wiki-20220301-en-pr.jsonl") as f:
+    with open("outputs/datasets/wiki-20220301-en-pr.jsonl") as f:
         data = []
         for line in f:
             data.append(json.loads(line))

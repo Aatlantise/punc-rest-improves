@@ -55,7 +55,7 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
 
 def load_pr_dataset():
-    with open("datasets/conll-2012-srl.jsonl") as f:
+    with open("outputs/datasets/conll-2012-srl.jsonl") as f:
         data = []
         for line in f:
             data.append(json.loads(line))
@@ -293,7 +293,7 @@ def run(
     #     eval_batch_size=eval_batch_size,
     #     num_train_epochs=max_epochs,
     # )
-    model = PRT5.load_from_checkpoint('outputs/checkpoints/wiki.en.2022.pr.ckpt')
+    model = PRT5.load_from_checkpoint('outputs/checkpoints/pr-pretrain.ckpt')
 
     # Logging
     logger = TensorBoardLogger(save_dir=output_dir, name="logs")

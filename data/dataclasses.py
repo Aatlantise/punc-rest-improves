@@ -17,8 +17,7 @@ logger = logging.getLogger(__name__)
 class PrepData:
     """Loads dataset with hugging face API, preprocesses it and saves to jsonl
     
-    Subclasses should be placed in `prep_data/` and implement `src_tgt_pairs`
-    which generates source-target pairs for training
+    Subclasses should implement `src_tgt_pairs`
     """
 
     def __init__(self, **kwargs) -> None:
@@ -32,10 +31,10 @@ class PrepData:
     def to_json(self, filename:str=None) -> int:
         """Output data to JSONL
 
-        Default path is `datasets` with the jsonl file named after the caller class.
+        Default path is `outputs/datasets/` with the jsonl file named after the caller class.
         """
         filename = filename or self.__class__.__name__
-        path = 'datasets/' + filename + '.jsonl'
+        path = 'outputs/datasets/' + filename + '.jsonl'
         num_lines = 0
         with open(path, 'w', encoding='utf-8') as file:
             for source, target in self.src_tgt_pairs():
@@ -68,13 +67,13 @@ class TrainData:
         self,
         split: str,
         tokenizer,
-        max_seq_length,
-        eval_batch_size,
-        num_workers
+        max_seq_length: int,
+        eval_batch_size: int,
+        **kwargs,
     ):
         """Dataloader for data with set tokenizer and other parameters"""
         
-        def preprocess(example) -> DataLoader:
+        def preprocess(example):
             sources = tokenizer(
                 example['source'],
                 max_length = max_seq_length,
@@ -92,5 +91,5 @@ class TrainData:
         
         ds = Dataset.from_list(self.data[split]).map(preprocess, batched = True)
         ds.set_format(type = 'torch', columns = ['input_ids', 'attention_mask', 'labels'])
-        dl = DataLoader(ds, batch_size = eval_batch_size, num_workers = num_workers)
+        dl = DataLoader(ds, batch_size = eval_batch_size, **kwargs)
         return dl

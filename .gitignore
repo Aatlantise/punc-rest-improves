@@ -5,4 +5,4 @@ docker/*
 __pycache__
 logs
 outputs
-slurm/logs
+slurm

@@ -2,11 +2,9 @@
 
 #SBATCH -c 4
 #COMMENT -G 1
-#SBATCH -t 3:0:0
+#SBATCH -t 10:00
 
-#SBATCH --job-name='srl-train'
-#SBATCH --mail-user='rex.fang@icloud.com'
-#SBATCH --mail-type=ALL
+#SBATCH --job-name='srl-train-canary'
 #SBATCH --mem=16G
 #SBATCH --output="slurm/logs/%x-%j"
 

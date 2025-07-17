@@ -294,7 +294,7 @@ def run(
     weight_decay: float = 0.01,
 ):
     """Run training on data path"""
-    torch.set_float32_matmul_precision('high')
+    torch.set_float32_matmul_precision('medium')
     set_seed(seed)
     training_data = TrainingData(data_path)
     model = PRT5(

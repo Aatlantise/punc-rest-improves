@@ -300,7 +300,7 @@ def run(
     # Callbacks
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(output_dir, "checkpoints"),
-        filename="{epoch}-{val_loss:.4f}",
+        filename="main-clone-train-srl-{epoch}-{val_loss:.4f}",
         save_top_k=save_top_k,
         verbose=True,
         monitor=monitor_metric,
@@ -322,7 +322,7 @@ def run(
     )
 
     # Training
-    trainer.fit(model, ckpt_path='outputs/checkpoints')
+    trainer.fit(model, ckpt_path='outputs/checkpoints/wiki.en.2022.pr.ckpt')
 
     # Optionally test on test set (implement test_dataloader in the module first)
     if hasattr(model, 'test_dataloader'):

@@ -1,29 +1,20 @@
 ## Rex's refactor of eval.py
 
+import logging
+import sys
 import torch
 
 from data.modules import TrainData as TrainingData
+from sklearn.metrics import precision_recall_fscore_support
 from train import PRT5
 
-def prf1_score(
-    texts: list[str],
-    outputs: list[str],
-    targets: list[str]
-) -> tuple[float, float, float]:
-    attempts = len(texts)
-    if len(outputs) != attempts:
-        raise ValueError(f'Output count: {len(outputs)}, not attempt count: {attempts}')
-    if len(targets) != attempts:
-        raise ValueError(f'Target count: {len(targets)}, not attempt count: {attempts}')
-    gold, correct = 0, 0
-    for text, output, target in zip(texts, outputs, targets):
-        if output.strip() == target.strip():
-            correct += 1
-        gold += 1
-    p = correct / attempts
-    r = correct / gold
-    f1 = 2 * p * r / (p + r)
-    return p, r, f1
+logging.basicConfig(
+    format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level = logging.DEBUG,
+    stream = sys.stdout,
+)
+logger = logging.getLogger(__name__)
+torch.autograd.set_detect_anomaly(True)
 
 if __name__ == '__main__':
     model: PRT5 = PRT5.load_from_checkpoint('outputs/checkpoints/pr-srl.20250718-045803.epoch=1-val_loss=0.0413.ckpt')
@@ -37,10 +28,21 @@ if __name__ == '__main__':
     )
     texts, outputs, targets = model.generate(dl)
     for i in range(10):
-        print(f"""
-        =============== Generated Output #{i} ===============
-        Text: {texts[i]},
-        Output: {outputs[i]},
-        Target: {targets[i]},
-        """)
+        print(
+            f"""
+            =============== Generated Output #{i} ===============
+            Text: {texts[i]},
+            Output: {outputs[i]},
+            Target: {targets[i]},
+            """
+        )
+    p, r, f1 = precision_recall_fscore_support(targets, outputs)
+    print(
+        f"""
+        =============== Evaluation Result ===============
+        Precision: {p},
+        Recall: {r},
+        F1: {f1},
+        """
+    )
     

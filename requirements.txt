@@ -9,3 +9,4 @@ numpy
 tqdm
 tensorboard
 transformer_engine
+scikit-learn

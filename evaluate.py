@@ -1,5 +1,7 @@
 ## Rex's refactor of eval.py
 
+import torch
+
 from data.modules import TrainData as TrainingData
 from train import PRT5
 
@@ -24,7 +26,7 @@ def prf1_score(
     return p, r, f1
 
 if __name__ == '__main__':
-    model: PRT5 = PRT5.load_from_checkpoint('outputs/checkpoints/pr-srl-final.ckpt')
+    model: PRT5 = PRT5.load_from_checkpoint('outputs/checkpoints/pr-srl.20250718-045803.epoch=1-val_loss=0.0413.ckpt')
     ds = TrainingData('outputs/datasets/conll-2012-srl.jsonl')
     dl = ds.loader(
         split = 'test',
@@ -34,7 +36,7 @@ if __name__ == '__main__':
         num_workers = 4,
     )
     texts, outputs, targets = model.generate(dl)
-    for i in range(3):
+    for i in range(10):
         print(f"""
         =============== Generated Output #{i} ===============
         Text: {texts[i]},

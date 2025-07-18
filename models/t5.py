@@ -91,7 +91,7 @@ class PRT5(LightningModule):
     def generate(
         self,
         input_dataloader: DataLoader,
-        max_len: int = 256,
+        max_len: int = 512,
         num_beams: int = 4,
         skip_special_tokens: bool = True,
     ) -> tuple[list[str], list[str], list[str]]:

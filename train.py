@@ -5,6 +5,8 @@ import logging
 import numpy as np
 import os
 import random
+import sys
+import torch
 
 from data.modules import TrainData
 from datetime import datetime
@@ -13,14 +15,10 @@ from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
 from models.t5 import PRT5
 
-# Torch
-import torch
-
 logging.basicConfig(
-    filename = 'logs/train.py.log',
-    filemode = 'w',
     format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level = logging.INFO,
+    level = logging.DEBUG,
+    stream = sys.stdout,
 )
 logger = logging.getLogger(__name__)
 torch.autograd.set_detect_anomaly(True)
@@ -45,7 +43,7 @@ def run(
     learning_rate: float = 3e-4,
     log_every_n_steps: int = 10,
     max_epochs = 3,
-    max_seq_length: int = 256,
+    max_seq_length: int = 512,
     model_name_or_path = 'google-t5/t5-base',
     monitor_metric: str = 'val_loss',
     num_train_epochs: int = 3,
@@ -131,5 +129,5 @@ if __name__ == '__main__':
     run(
         data_path = 'outputs/datasets/conll-2012-srl.jsonl',
         resume_ckpt = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',
-        ckpt_filename = 'pr-srl',
+        ckpt_filename = 'pr-srl-512tokens',
     )

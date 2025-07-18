@@ -174,20 +174,21 @@ class PRT5(LightningModule):
         skip_special_tokens,
     ) -> tuple[list[str], list[str], list[str]]:
         outputs, targets, texts = [], [], []
-        for batch in tqdm(input_dataloader):
-            outputs.extend(
-                map(
-                    self.decoder(skip_special_tokens),
-                    self.model.generate(
-                        input_ids = batch['input_ids'].to('cuda'),
-                        attention_mask = batch['attention_mask'].to('cuda'),
-                        max_length = max_len,
-                        num_beams = num_beams,
+        with torch.no_grad():
+            for batch in tqdm(input_dataloader):
+                outputs.extend(
+                    map(
+                        self.decoder(skip_special_tokens),
+                        self.model.generate(
+                            input_ids = batch['input_ids'].to('cuda'),
+                            attention_mask = batch['attention_mask'].to('cuda'),
+                            max_length = max_len,
+                            num_beams = num_beams,
+                        )
                     )
                 )
-            )
-            targets.extend(map(self.decoder(skip_special_tokens), batch['labels']))
-            texts.extend(map(self.decoder(skip_special_tokens), batch['input_ids']))
+                targets.extend(map(self.decoder(skip_special_tokens), batch['labels']))
+                texts.extend(map(self.decoder(skip_special_tokens), batch['input_ids']))
         return texts, outputs, targets
     
     def _generic_dataloader(self, split: str) -> DataLoader:

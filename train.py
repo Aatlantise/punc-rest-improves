@@ -20,7 +20,7 @@ logging.basicConfig(
     filename = 'logs/train.py.log',
     filemode = 'w',
     format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level = logging.DEBUG,
+    level = logging.INFO,
 )
 logger = logging.getLogger(__name__)
 torch.autograd.set_detect_anomaly(True)
@@ -124,12 +124,12 @@ def run(
         logger.info('Testing unsuccessful')
 
 if __name__ == '__main__':
-    run(
-        data_path = 'outputs/datasets/wiki.en.20231101.pr.jsonl',
-        ckpt_filename = 'pr',
-    )
+    #run(
+    #    data_path = 'outputs/datasets/wiki.en.20231101.pr.jsonl',
+    #    ckpt_filename = 'pr',
+    #)
     run(
         data_path = 'outputs/datasets/conll-2012-srl.jsonl',
-        resume_ckpt = 'outputs/checkpoints/pr-final.ckpt',
+        resume_ckpt = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',
         ckpt_filename = 'pr-srl',
     )

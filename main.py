@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 from typing import List, Any, Union
 from datasets import Dataset
-from eval import pr_score
+from eval import pr_score, NER_eval
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
@@ -54,8 +54,9 @@ def set_seed(seed):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-def load_pr_dataset():
-    with open("punctuation_restoration_dataset.jsonl") as f:
+def load_pr_dataset(dataset_name:str):
+    # name should be a jsonl file. Originall "punctuation_restoration_dataset.jsonl"
+    with open(dataset_name) as f:
         data = []
         for line in f:
             data.append(json.loads(line))
@@ -105,6 +106,8 @@ class PRT5(pl.LightningModule):
                  ):
         super().__init__()
         self.save_hyperparameters()
+        
+        print(f"\n The model being used is (model name or path): {model_name_or_path} \n")
 
         self.model = T5ForConditionalGeneration.from_pretrained(model_name_or_path)
         self.tokenizer = T5TokenizerFast.from_pretrained(model_name_or_path)
@@ -132,9 +135,9 @@ class PRT5(pl.LightningModule):
         self.log("PR F1 Score: ", score)
 
         # Optionally, write to file for inspection
-        # with open("test_predictions.jsonl", "w") as f:
-        #     for pred, target in zip(all_preds, all_targets):
-        #         f.write(json.dumps({"prediction": pred, "target": target}) + "\n")
+        #  with open("test_predictions.jsonl", "w") as f:
+        #      for pred, target in zip(all_preds, all_targets):
+        #          f.write(json.dumps({"prediction": pred, "target": target}) + "\n")
 
     def training_step(self, batch, batch_idx):
         labels = batch["labels"]
@@ -216,9 +219,9 @@ class PRT5(pl.LightningModule):
     def test_dataloader(self):
         return self.test_dl
 
-def get_punctuation_dataset(tokenizer, split: str, max_len: int):
+def get_punctuation_dataset_custom(tokenizer, split: str, max_len: int, dataset_name: str):
     # Load your dataset file, e.g., .pkl or .jsonl
-    data = load_pr_dataset()[split]  # or custom loading logic
+    data = load_pr_dataset(dataset_name)[split]  # or custom loading logic
 
     def preprocess(example):
         inputs = tokenizer(example['source'], max_length=max_len, truncation=True, padding="max_length")
@@ -230,7 +233,8 @@ def get_punctuation_dataset(tokenizer, split: str, max_len: int):
     dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
     return dataset
 
-
+def get_punctuation_dataset(tokenizer, split: str, max_len: int):
+    return get_punctuation_dataset_custom(tokenizer, split, max_len, "punctuation_restoration_dataset.jsonl")
 
 class LoggingCallback(pl.Callback):
     def on_validation_end(self, trainer, pl_module):
@@ -277,6 +281,8 @@ def run(
     monitor_metric: str = "val_loss",
     log_every_n_steps: int = 10,
     resume_from_checkpoint: str = None,
+    NER_eval_flag: bool = False,
+    dataset_name: str = "processed_conll03.jsonl"
 ):
     pl.seed_everything(seed)
     set_seed(seed)
@@ -292,6 +298,7 @@ def run(
         train_batch_size=train_batch_size,
         eval_batch_size=eval_batch_size,
         num_train_epochs=max_epochs,
+        dataset_name=dataset_name,
     )
 
     # Logging
@@ -304,7 +311,8 @@ def run(
         save_top_k=save_top_k,
         verbose=True,
         monitor=monitor_metric,
-        mode="min"
+        mode="min",
+        save_last=True
     )
 
     lr_monitor = LearningRateMonitor(logging_interval='step')
@@ -327,6 +335,24 @@ def run(
     # Optionally test on test set (implement test_dataloader in the module first)
     if hasattr(model, 'test_dataloader'):
         trainer.test(model)
+    
+    # Get NER evaluation
+    if NER_eval_flag:
+        print("NER evaluation \n")
+        ckpt_path = os.path.join(output_dir, "checkpoints", "last.ckpt")
+        model = PRT5.load_from_checkpoint(ckpt_path)
+        texts, outputs, targets = generate(
+            ckpt = None, # change to checkpoint if desired
+            # ckpt = ckpt_path,
+            model=model,
+            input_dataset=get_punctuation_dataset_custom(model.tokenizer, "test", max_seq_length, dataset_name),
+            tokenizer=model.tokenizer,
+            batch_size=eval_batch_size,
+            # max_len=max_seq_length,
+            shuffle=False
+        )
+        #  NER_eval(texts, outputs, targets, printer=logger.info)
+        NER_eval(texts, outputs, targets)
 
 
 def generate(ckpt: Union[str, None], model, input_dataset, tokenizer, batch_size, max_len=256, num_beams=4, skip_special_tokens=True, shuffle=True):
@@ -341,16 +367,16 @@ def generate(ckpt: Union[str, None], model, input_dataset, tokenizer, batch_size
     targets = []
     texts = []
     for batch in tqdm(dataloader):
-        outs = model.model.generate(input_ids=batch['source_ids'].to("cuda"),
-                                    attention_mask=batch['source_mask'].to("cuda"),
+        outs = model.model.generate(input_ids=batch['input_ids'].to("cuda"),
+                                    attention_mask=batch['attention_mask'].to("cuda"),
                                     max_length=max_len, num_beams=num_beams
                                     )
         dec = [tokenizer.decode(ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=False).strip() for ids in
                outs]
         target = [tokenizer.decode(ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=False).strip()
-                  for ids in batch["target_ids"]]
+                  for ids in batch["labels"]]
         text = [tokenizer.decode(ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=False).strip()
-                for ids in batch["source_ids"]]
+                for ids in batch["input_ids"]]
         texts.extend(text)
         outputs.extend(dec)
         targets.extend(target)
@@ -361,5 +387,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name_or_path", type=str, default="t5-base")
     parser.add_argument("--output_dir", type=str, default="./outputs")
+    parser.add_argument("--NER_eval_flag", action="store_true")
+    parser.add_argument("--dataset_name", type=str, default="processed_conll_data.jsonl")
     args = parser.parse_args()
     run(**vars(args))

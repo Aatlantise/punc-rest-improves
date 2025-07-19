@@ -5,6 +5,12 @@ from typing import List, Dict, Union
 def clean_split(s: str) -> List[str]:
     return [k.strip(' ') for k in s.strip(' ').strip(')').strip('(').strip(' ').split(') (')]
 
+# If jsonl data is formatted as "word:label"
+def clean_split_alt(s:str):
+    # return [k.strip(' ') for k in s.strip(' ').strip(')').strip('(').strip(' ').split(') (')]
+    result = [k for k in s.split(' ') if k != '']
+    return [k for k in result if k[-1] != ":"]
+
 def text2triple(outputs, targets):
     output_list = []
     target_list = []
@@ -106,6 +112,10 @@ def object_generation_score(texts, outputs, targets, printer=print):
         g = clean_split(t.lower())
         attempts += len(a)
         total_gold += len(g)
+
+        print("text: ", sent)
+        print("predictions: ", a)
+        print("target: ", g)
 
         # use exact match
         correct += len([k for k in a if k in g])
@@ -612,20 +622,16 @@ def NER_eval(texts, outputs, targets, printer=print):
     total_gold = 0
     correct = 0
 
-    def clean_space(s:str):
-        # return [k.strip(' ') for k in s.strip(' ').strip(')').strip('(').strip(' ').split(') (')]
-        result = [k for k in s.split(' ') if k != '']
-        return [k for k in result if k[-1] != ":"]
     
     for sent, o, t in zip(texts, outputs, targets):
-        a = [k for k in clean_space(o.lower()) if k != "()"]
+        a = [k for k in clean_split(o.lower())]
         # ignore empty strings "()"
-        g = clean_space(t.lower())
+        g = clean_split(t.lower())
         attempts += len(a) # total number of predictions
         total_gold += len(g) # total number of labels
-        print("input: ", sent)
-        print("predicted labels: ", a)
-        print("gold labels: ", g)
+        printer("input: ", sent)
+        printer("predicted labels: ", a)
+        printer("gold labels: ", g)
 
         # use exact match
         correct += len([k for k in a if k in g])

@@ -1,15 +1,16 @@
 from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 from typing import List, Dict, Union
+import re
 
-def clean_split(s: str) -> List[str]:
+def clean_split(s: str) -> list[str]:
     return [k.strip(' ') for k in s.strip(' ').strip(')').strip('(').strip(' ').split(') (')]
 
 # If jsonl data is formatted as "word:label"
 def clean_split_alt(s:str):
     # return [k.strip(' ') for k in s.strip(' ').strip(')').strip('(').strip(' ').split(') (')]
-    result = [k for k in s.split(' ') if k != '']
-    return [k for k in result if k[-1] != ":"]
+    result = re.findall(".+?:[a-z]+", s) # use +? for non-greedy match
+    return [k.strip() for k in result]
 
 def text2triple(outputs, targets):
     output_list = []

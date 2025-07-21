@@ -10,7 +10,7 @@ import torch
 
 from data.modules import TrainData
 from datetime import datetime
-from lightning import Trainer
+from lightning import Callback, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
 from models.t5 import PRT5
@@ -32,6 +32,21 @@ def set_seed(seed: int):
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+        
+class IndividualCheckpoints(Callback):
+    def __init__(self, epochs_to_save_at: set[int], save_dir: str = 'outputs/checkpoints', name: str = 'mlm'):
+        super().__init__()
+        self.epochs_to_save_at = epochs_to_save_at
+        self.save_dir = save_dir
+        self.name = name
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        epoch = trainer.current_epoch
+        if trainer.current_epoch in self.epochs_to_save_at:
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            ckpt_path = os.path.join(self.save_dir, '%s-%s-epoch%s.ckpt' % (self.name, timestamp, epoch))
+            trainer.save_checkpoint(ckpt_path)
+            logger.info('Saved checkpoint at %s' % ckpt_path)
 
 def run(
     accelerator: str = 'gpu',
@@ -89,13 +104,13 @@ def run(
             ModelCheckpoint(
                 dirpath = os.path.join(output_dir, 'checkpoints'),
                 filename = '%s.%s.{epoch}-{val_loss:.4f}' % (ckpt_filename, timestamp),
-                every_n_epochs = 1,
                 save_top_k = save_top_k,
                 verbose = True,
                 monitor = monitor_metric,
                 mode = 'min',
             ),
-            LearningRateMonitor(logging_interval = 'step')
+            LearningRateMonitor(logging_interval = 'step'),
+            IndividualCheckpoints(epochs_to_save_at = {0, 9}),
         ],
         precision = precision,
         accelerator = accelerator,
@@ -130,5 +145,4 @@ if __name__ == '__main__':
         ckpt_filename = 'mlm',
         min_epochs = 10,
         max_epochs = 10,
-        save_top_k = -1,
     )

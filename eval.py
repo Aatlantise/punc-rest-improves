@@ -484,11 +484,19 @@ def pr_score(texts, outputs, targets, printer=print):
         o_tokens = output.split(' ')
         t_tokens = target.split(' ')
 
+        printer("source: ", source)
+        printer("output: ", output)
+        printer("target: ", target)
+        printer("s_tokens: ", s_tokens)
+        printer("o_tokens: ", o_tokens)
+        printer("t_tokens", t_tokens)
+
         if len(s_tokens) != len(o_tokens) or len(s_tokens) != len(t_tokens):
             len_mismatch += 1
-            # printer(
-            #     f"Found length mismatch between source {len(s_tokens)}, output {len(o_tokens)}, target {len(t_tokens)}\n")
-            # printer("Skipping...")
+            printer(
+                f"Found length mismatch between source {len(s_tokens)}, output {len(o_tokens)}, target {len(t_tokens)}\n")
+            printer("Skipping...")
+        
             min_len = min([len(s_tokens), len(o_tokens), len(t_tokens)])
             s_tokens = s_tokens[:min_len]
             o_tokens = o_tokens[:min_len]
@@ -630,9 +638,9 @@ def NER_eval(texts, outputs, targets, printer=print):
         g = clean_split(t.lower())
         attempts += len(a) # total number of predictions
         total_gold += len(g) # total number of labels
-        printer("input: ", sent)
-        printer("predicted labels: ", a)
-        printer("gold labels: ", g)
+        # printer("input: ", sent)
+        # printer("predicted labels: ", a)
+        # printer("gold labels: ", g)
 
         # use exact match
         correct += len([k for k in a if k in g])

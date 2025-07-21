@@ -18,7 +18,8 @@ OUTPUT_PATH = "punctuation_restoration_dataset.jsonl"
 def normalize_text(text):
     """Lowercase and remove specific punctuation and capitalization."""
     text = text.lower()
-    return ''.join(ch for ch in text if ch not in PUNCTUATION_TO_REMOVE)
+    result = ''.join(ch for ch in text if ch not in PUNCTUATION_TO_REMOVE)
+    result = re.sub('\s+', ' ', result)
 
 def chunk_sentences(sentences, max_words=MAX_WORDS):
     """Split sentences into non-overlapping chunks under max_words."""

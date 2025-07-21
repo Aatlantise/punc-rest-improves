@@ -1,5 +1,6 @@
 import json
 import logging
+import sys
 import torch
 
 from data.modules import TrainData
@@ -18,10 +19,9 @@ from transformers import (
 from typing import Callable, Union
 
 logging.basicConfig(
-    filename = 'logs/t5',
-    filemode = 'w',
     format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level = logging.DEBUG,
+    stream = sys.stdout,
 )
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ class PRT5(LightningModule):
     def generate(
         self,
         input_dataloader: DataLoader,
-        max_len: int = 256,
+        max_len: int = 512,
         num_beams: int = 4,
         skip_special_tokens: bool = True,
     ) -> tuple[list[str], list[str], list[str]]:

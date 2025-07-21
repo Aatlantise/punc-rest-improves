@@ -5,22 +5,20 @@ import logging
 import numpy as np
 import os
 import random
+import sys
+import torch
 
 from data.modules import TrainData
 from datetime import datetime
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
-from models.t5 import MLMT5, PRT5
-
-# Torch
-import torch
+from models.t5 import PRT5
 
 logging.basicConfig(
-    filename = 'logs/train.py.log',
-    filemode = 'w',
     format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level = logging.INFO,
+    level = logging.DEBUG,
+    stream = sys.stdout,
 )
 logger = logging.getLogger(__name__)
 torch.autograd.set_detect_anomaly(True)
@@ -45,7 +43,7 @@ def run(
     learning_rate: float = 3e-4,
     log_every_n_steps: int = 10,
     max_epochs = 3,
-    max_seq_length: int = 256,
+    max_seq_length: int = 512,
     model_name_or_path = 'google-t5/t5-base',
     monitor_metric: str = 'val_loss',
     num_train_epochs: int = 3,
@@ -66,7 +64,7 @@ def run(
     training_data = TrainData(data_path)
     logger.info(f'Loaded training data from {data_path}')
     
-    model = MLMT5.load_from_checkpoint(resume_ckpt) if resume_ckpt else MLMT5(
+    model = PRT5.load_from_checkpoint(resume_ckpt) if resume_ckpt else PRT5(
         adam_epsilon = adam_epsilon,
         eval_batch_size = eval_batch_size,
         learning_rate = learning_rate,
@@ -84,7 +82,7 @@ def run(
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     trainer = Trainer(
         max_epochs = max_epochs,
-        logger = TensorBoardLogger(save_dir = output_dir, name = 'logs'),
+        logger = TensorBoardLogger(save_dir = os.path.join(output_dir, 'logs'), name = ckpt_filename),
         callbacks = [
             ModelCheckpoint(
                 dirpath = os.path.join(output_dir, 'checkpoints'),
@@ -124,12 +122,12 @@ def run(
         logger.info('Testing unsuccessful')
 
 if __name__ == '__main__':
+    #run(
+    #    data_path = 'outputs/datasets/wiki-20231101.en-pr.jsonl.jsonl',
+    #    ckpt_filename = 'pr',
+    #)
     run(
-       data_path = 'outputs/datasets/wiki.en.20231101.pr.jsonl',
-       ckpt_filename = 'mlm',
+        data_path = 'outputs/datasets/conll-2012-srl-512t.jsonl',
+        resume_ckpt = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',
+        ckpt_filename = 'pr-srl-512tokens',
     )
-    # run(
-    #     data_path = 'outputs/datasets/conll-2012-srl.jsonl',
-    #     resume_ckpt = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',
-    #     ckpt_filename = 'pr-srl',
-    # )

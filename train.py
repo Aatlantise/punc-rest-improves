@@ -82,7 +82,7 @@ def run(
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     trainer = Trainer(
         max_epochs = max_epochs,
-        logger = TensorBoardLogger(save_dir = output_dir, name = 'logs'),
+        logger = TensorBoardLogger(save_dir = os.path.join(output_dir, 'logs'), name = ckpt_filename),
         callbacks = [
             ModelCheckpoint(
                 dirpath = os.path.join(output_dir, 'checkpoints'),

@@ -46,4 +46,4 @@ class CoNLL2012(PrepData):
 
 if __name__ == '__main__':
     ds = CoNLL2012()
-    ds.to_json('conll-2012-srl')
+    ds.to_json('conll-2012-srl-512t')

@@ -75,4 +75,4 @@ if __name__ == "__main__":
     nltk.download('punkt')
     nltk.download('punkt_tab')
     ds = WikiPR()
-    ds.to_json('wiki.en.20231101.pr')
+    ds.to_json('wiki-20231101.en-pr')

@@ -105,9 +105,9 @@ def run(
     trainer.fit(model)
     logger.info('Fitted model')
     
-    final_ckpt_name = '%s-final.ckpt' % ckpt_filename
-    trainer.save_checkpoint(os.path.join(output_dir, 'checkpoints', final_ckpt_name))
-    logger.info(f'Saved model to {final_ckpt_name}')
+    # final_ckpt_name = '%s-final.ckpt' % ckpt_filename
+    # trainer.save_checkpoint(os.path.join(output_dir, 'checkpoints', final_ckpt_name))
+    # logger.info(f'Saved model to {final_ckpt_name}')
     
     try:
         trainer.test(model, dataloaders = training_data.loader(
@@ -123,11 +123,11 @@ def run(
 
 if __name__ == '__main__':
     #run(
-    #    data_path = 'outputs/datasets/wiki.en.20231101.pr.jsonl',
+    #    data_path = 'outputs/datasets/wiki-20231101.en-pr.jsonl.jsonl',
     #    ckpt_filename = 'pr',
     #)
     run(
-        data_path = 'outputs/datasets/conll-2012-srl.jsonl',
+        data_path = 'outputs/datasets/conll-2012-srl-512t.jsonl',
         resume_ckpt = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',
         ckpt_filename = 'pr-srl-512tokens',
     )

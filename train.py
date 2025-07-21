@@ -42,6 +42,7 @@ def run(
     eval_batch_size: int = 32,
     learning_rate: float = 3e-4,
     log_every_n_steps: int = 10,
+    min_epochs = 3,
     max_epochs = 3,
     max_seq_length: int = 512,
     model_name_or_path = 'google-t5/t5-base',
@@ -81,12 +82,14 @@ def run(
     
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     trainer = Trainer(
+        min_epochs = min_epochs,
         max_epochs = max_epochs,
         logger = TensorBoardLogger(save_dir = os.path.join(output_dir, 'logs'), name = ckpt_filename),
         callbacks = [
             ModelCheckpoint(
                 dirpath = os.path.join(output_dir, 'checkpoints'),
                 filename = '%s.%s.{epoch}-{val_loss:.4f}' % (ckpt_filename, timestamp),
+                every_n_epochs = 1,
                 save_top_k = save_top_k,
                 verbose = True,
                 monitor = monitor_metric,
@@ -122,12 +125,10 @@ def run(
         logger.info('Testing unsuccessful')
 
 if __name__ == '__main__':
-    #run(
-    #    data_path = 'outputs/datasets/wiki-20231101.en-pr.jsonl.jsonl',
-    #    ckpt_filename = 'pr',
-    #)
-    run(
-        data_path = 'outputs/datasets/conll-2012-srl-512t.jsonl',
-        resume_ckpt = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',
-        ckpt_filename = 'pr-srl-512tokens',
+    run( # MLM
+        data_path = 'outputs/datasets/wiki-20231101.en-mlm.jsonl',
+        ckpt_filename = 'mlm',
+        min_epochs = 10,
+        max_epochs = 10,
+        save_top_k = -1,
     )

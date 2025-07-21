@@ -75,18 +75,19 @@ class WikiPR(PrepData):
 def mask_text(
     text: str,
     p_mask: float = 0.15,
-    p_mask_as_token: float = 0.8,
+    # p_mask_as_token: float = 0.8,
     # p_mask_as_random_word: float = 0.1,
 ) -> tuple[str, str]:
     """Mask tokens according to parameters and return source and target strings. """
     source_words = word_tokenize(text)
     num_words = len(source_words)
-    target_words = ['<extra_id_%d>' % i for i in range(num_words)]
+    target_words = []
     mask_indices = random.sample(range(1, num_words - 1), int(num_words * p_mask))
-    for i in mask_indices:
-        target_words[i] = source_words[i]
-        if random.random() < p_mask_as_token:
-            source_words[i] = '<extra_id_%d>' % i
+    for i in sorted(mask_indices):
+        sentinel = '<extra_id_%d>' % i
+        target_words.append(sentinel)
+        target_words.append(source_words[i])
+        source_words[i] = sentinel
     return ' '.join(source_words), ' '.join(target_words)
 
 class WikiMLM(PrepData):

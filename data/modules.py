@@ -28,7 +28,7 @@ class PrepData:
         """A generator function of source-target pairs as examples of training data"""
         pass
 
-    def to_json(self, filename:str=None) -> int:
+    def to_json(self, filename: str = None) -> int:
         """Output data to JSONL
 
         Default path is `outputs/datasets/` with the jsonl file named after the caller class.
@@ -38,7 +38,7 @@ class PrepData:
         num_lines = 0
         with open(path, 'w', encoding='utf-8') as file:
             for source, target in self.src_tgt_pairs():
-                json.dump({'source': source, 'target': target}, file, ensure_ascii=False)
+                json.dump({'source': source, 'target': target}, file, ensure_ascii = False)
                 file.write('\n')
                 num_lines += 1
         logger.info(f'Wrote {num_lines} lines to {path}')

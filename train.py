@@ -11,7 +11,7 @@ from datetime import datetime
 from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
-from models.t5 import PRT5
+from models.t5 import MLMT5, PRT5
 
 # Torch
 import torch
@@ -66,7 +66,7 @@ def run(
     training_data = TrainData(data_path)
     logger.info(f'Loaded training data from {data_path}')
     
-    model = PRT5.load_from_checkpoint(resume_ckpt) if resume_ckpt else PRT5(
+    model = MLMT5.load_from_checkpoint(resume_ckpt) if resume_ckpt else MLMT5(
         adam_epsilon = adam_epsilon,
         eval_batch_size = eval_batch_size,
         learning_rate = learning_rate,
@@ -107,9 +107,9 @@ def run(
     trainer.fit(model)
     logger.info('Fitted model')
     
-    final_ckpt_name = '%s-final.ckpt' % ckpt_filename
-    trainer.save_checkpoint(os.path.join(output_dir, 'checkpoints', final_ckpt_name))
-    logger.info(f'Saved model to {final_ckpt_name}')
+    # final_ckpt_name = '%s-final.ckpt' % ckpt_filename
+    # trainer.save_checkpoint(os.path.join(output_dir, 'checkpoints', final_ckpt_name))
+    # logger.info(f'Saved model to {final_ckpt_name}')
     
     try:
         trainer.test(model, dataloaders = training_data.loader(
@@ -124,12 +124,12 @@ def run(
         logger.info('Testing unsuccessful')
 
 if __name__ == '__main__':
-    #run(
-    #    data_path = 'outputs/datasets/wiki.en.20231101.pr.jsonl',
-    #    ckpt_filename = 'pr',
-    #)
     run(
-        data_path = 'outputs/datasets/conll-2012-srl.jsonl',
-        resume_ckpt = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',
-        ckpt_filename = 'pr-srl',
+       data_path = 'outputs/datasets/wiki.en.20231101.pr.jsonl',
+       ckpt_filename = 'mlm',
     )
+    # run(
+    #     data_path = 'outputs/datasets/conll-2012-srl.jsonl',
+    #     resume_ckpt = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',
+    #     ckpt_filename = 'pr-srl',
+    # )

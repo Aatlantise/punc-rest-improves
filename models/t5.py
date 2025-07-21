@@ -218,7 +218,7 @@ class PRT5(LightningModule):
     
     def _verify_data_stored(self):
         if self.training_data is None:
-            raise Exception('PRT5 model has no stored TrainData data. Call .store_data() before using dataloaders!')
+            raise Exception(f'{self.__class__.__name__} model has no stored TrainData data. Call .store_data() before using dataloaders!')
         
 
 class MLMT5(LightningModule):

@@ -480,16 +480,17 @@ def pr_score(texts, outputs, targets, printer=print):
     len_mismatch = 0
     for source, output, target in zip(texts, outputs, targets):
         # s_tokens = source[32:].split(' ')  # prompt is 32 chars long
-        s_tokens = source.split(' ')
-        o_tokens = output.split(' ')
-        t_tokens = target.split(' ')
+        s_tokens = [text for text in source.split(' ') if text.strip() != '']
+        o_tokens = [text for text in output.split(' ') if text.strip() != '']
+        t_tokens = [text for text in target.split(' ') if text.strip() != '']
 
-        printer("source: ", source)
-        printer("output: ", output)
-        printer("target: ", target)
-        printer("s_tokens: ", s_tokens)
-        printer("o_tokens: ", o_tokens)
-        printer("t_tokens", t_tokens)
+        # printer("source: ", source)
+        # printer("output: ", output)
+        # printer("target: ", target)
+        # printer("s_tokens: ", s_tokens)
+        # printer("o_tokens: ", o_tokens)
+        # printer("t_tokens", t_tokens)
+        
 
         if len(s_tokens) != len(o_tokens) or len(s_tokens) != len(t_tokens):
             len_mismatch += 1

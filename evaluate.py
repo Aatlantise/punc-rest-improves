@@ -5,7 +5,7 @@ import sys
 import torch
 
 from data.modules import TrainData as TrainingData
-from sklearn.metrics import precision_recall_fscore_support
+from eval import pr_score
 from train import PRT5
 
 logging.basicConfig(
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 torch.autograd.set_detect_anomaly(True)
 
 if __name__ == '__main__':
-    print("=========== 256-Token SRL ==========")
+    print("=============== 256-Token SRL ===============")
     model: PRT5 = PRT5.load_from_checkpoint('outputs/checkpoints/pr-srl.20250718-045803.epoch=1-val_loss=0.0413.ckpt')
     ds = TrainingData('outputs/datasets/conll-2012-srl-256t.jsonl')
     dl = ds.loader(
@@ -37,18 +37,15 @@ if __name__ == '__main__':
             Target: {targets[i]},
             """
         )
-    p, r, f1, supp = precision_recall_fscore_support(targets, outputs)
+    f1 = pr_score(texts, outputs, targets)
     print(
         f"""
         =============== Evaluation Result ===============
-        Precision: {p},
-        Recall: {r},
         F1: {f1},
-        Support: {supp},
         """
     )
     
-    print("=========== 512-Token SRL ==========")
+    print("=============== 512-Token SRL ===============")
     model: PRT5 = PRT5.load_from_checkpoint('outputs/checkpoints/pr-srl-512tokens.20250721-095450.epoch=1-val_loss=0.0756.ckpt')
     ds = TrainingData('outputs/datasets/conll-2012-srl-512t.jsonl')
     dl = ds.loader(
@@ -68,14 +65,11 @@ if __name__ == '__main__':
             Target: {targets[i]},
             """
         )
-    p, r, f1, supp = precision_recall_fscore_support(targets, outputs)
+    f1 = pr_score(texts, outputs, targets)
     print(
         f"""
         =============== Evaluation Result ===============
-        Precision: {p},
-        Recall: {r},
         F1: {f1},
-        Support: {supp},
         """
     )
     

@@ -42,7 +42,7 @@ class IndividualCheckpoints(Callback):
 
     def on_train_epoch_end(self, trainer, pl_module):
         epoch = trainer.current_epoch
-        if trainer.current_epoch in self.epochs_to_save_at:
+        if epoch in self.epochs_to_save_at:
             timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
             ckpt_path = os.path.join(self.save_dir, '%s-%s-epoch%s.ckpt' % (self.name, timestamp, epoch))
             trainer.save_checkpoint(ckpt_path)

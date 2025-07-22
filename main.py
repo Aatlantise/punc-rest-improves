@@ -76,7 +76,7 @@ def load_pr_dataset():
     return load_dataset_name('punctuation_restoration_dataset.jsonl')
 
 def load_conll03_dataset():
-    return load_dataset_name('processed_conll03.jsonly')
+    return load_dataset_name('processed_conll03.jsonl')
 
 def load_prepped_dataset(task_name:str):
     if task_name == "pr":
@@ -356,19 +356,18 @@ def run(
     # Get evaluations
     run_eval(task_name, 
              output_dir, 
-             ckpt_name="",
              eval_batch_size=eval_batch_size, 
-             max_seq_length=max_seq_length)
+             max_seq_length=max_seq_length,
+             ckpt_name="last.ckpt")
 
 
-def run_eval(task_name, output_dir,ckpt_name,eval_batch_size, max_seq_length):
-    if ckpt_name == "":
-        ckpt_path = None
-    else:
-        ckpt_path = os.path.join(output_dir, "checkpoints", ckpt_name)
-    model = PRT5.load_from_checkpoint(ckpt_path)
+def run_eval(task_name, output_dir,eval_batch_size, max_seq_length,ckpt_name="last.ckpt"):
+    # load last checkpoint (default) or custom checkpoint
+    ckpt_path = os.path.join(output_dir, "checkpoints", ckpt_name)
+    model = PRT5.load_from_checkpoint(ckpt_path, task_name=task_name)
+    
     texts, outputs, targets = generate(
-        ckpt = ckpt_path,
+        ckpt = None,
         model=model,
         input_dataset=get_punctuation_dataset(model.tokenizer, "test", max_seq_length, "ner"),
         tokenizer=model.tokenizer,
@@ -416,7 +415,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name_or_path", type=str, default="t5-base")
     parser.add_argument("--output_dir", type=str, default="./outputs")
-    parser.add_argument("--dataset_name", type=str, default="processed_conll03.jsonl")
     parser.add_argument("--evaluate_only", action="store_true")
     parser.add_argument("--task_name", type=str, default="ner")
     args = parser.parse_args()

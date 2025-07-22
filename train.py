@@ -105,6 +105,7 @@ def run(
     trainer.fit(model)
     logger.info('Fitted model')
     
+    # Optionally save the last epoch
     # final_ckpt_name = '%s-final.ckpt' % ckpt_filename
     # trainer.save_checkpoint(os.path.join(output_dir, 'checkpoints', final_ckpt_name))
     # logger.info(f'Saved model to {final_ckpt_name}')
@@ -118,14 +119,18 @@ def run(
             num_workers = num_workers,
         ))
         logger.info('Tested model')
-    except:
-        logger.info('Testing unsuccessful')
+    except Exception as e:
+        # Print the error message but don't stop the program
+        logger.warning('Trainer test did not run. Error below:')
+        logger.warning(e)
 
 if __name__ == '__main__':
-    #run(
-    #    data_path = 'outputs/datasets/wiki-20231101.en-pr.jsonl.jsonl',
-    #    ckpt_filename = 'pr',
-    #)
+    # PR Pretrain
+    run(
+       data_path = 'outputs/datasets/wiki-20231101.en-pr.jsonl.jsonl',
+       ckpt_filename = 'pr',
+    )
+    # SRL Finetune
     run(
         data_path = 'outputs/datasets/conll-2012-srl-512t.jsonl',
         resume_ckpt = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',

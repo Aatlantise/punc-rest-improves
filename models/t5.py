@@ -3,6 +3,7 @@ import logging
 import sys
 import torch
 
+from eval import pr_score
 from data.modules import TrainData
 from lightning import LightningModule
 from torch.optim import AdamW
@@ -112,17 +113,13 @@ class PRT5(LightningModule):
             all_targets.extend(output['targets'])
         self._verify_data_stored()
         all_sources = self.training_data.data['source']
-        with open(self['epoch_end_result_path'], 'w') as f:
-            for prediction, target, source in zip(all_predictions, all_targets, all_sources):
-                f.write(
-                    json.dumps(
-                        {
-                            'prediction': prediction,
-                            'target': target,
-                            'source': source,
-                        }
-                    ) + '\n'
-                )
+        # Evaluate with chosen metric
+        score = pr_score(all_sources, all_predictions, all_targets)
+        self.log("PR F1 Score: ", score)
+        # Optionally, write to file for inspection
+        # with open(self['epoch_end_result_path'], 'w') as f:
+        #     for prediction, target, source in zip(all_predictions, all_targets, all_sources):
+        #         f.write(json.dumps({'prediction': prediction, 'target': target, 'source': source}) + '\n')
                 
     def save(self, path: str):
         """Save model parameters to path"""

@@ -114,9 +114,9 @@ def object_generation_score(texts, outputs, targets, printer=print):
         attempts += len(a)
         total_gold += len(g)
 
-        print("text: ", sent)
-        print("predictions: ", a)
-        print("target: ", g)
+        # printer("input: ", sent)
+        # printer("predicted labels: ", a)
+        # printer("gold labels: ", g)
 
         # use exact match
         correct += len([k for k in a if k in g])
@@ -625,42 +625,4 @@ def sbd_score(texts, outputs, targets, printer=print):
                 f"| End|{'%.3f' % e_p}|{'%.3f' % e_r}|{'%.3f' % e_f1}|\n"
                 f"|Macr|{'%.3f' % macro_p}|{'%.3f' % macro_r}|{'%.3f' % macro_f1}|\n")
         return macro_f1
-
-# Calculate the recall, precision and f1 score for NER tasks
-def NER_eval(texts, outputs, targets, printer=print):
-    attempts = 0
-    total_gold = 0
-    correct = 0
-
     
-    for sent, o, t in zip(texts, outputs, targets):
-        a = [k for k in clean_split(o.lower())]
-        # ignore empty strings "()"
-        g = clean_split(t.lower())
-        attempts += len(a) # total number of predictions
-        total_gold += len(g) # total number of labels
-        # printer("input: ", sent)
-        # printer("predicted labels: ", a)
-        # printer("gold labels: ", g)
-
-        # use exact match
-        correct += len([k for k in a if k in g])
-    
-    if 0 in [total_gold, attempts, correct]:
-        printer("No accurate extractions have been made. Continuing training...\n")
-        return 0
-    
-    printer(f"Out of {total_gold} NEs, the model extracted {correct} triples or entities correctly in {attempts} attempts.\n")
-    p = correct / attempts
-    r = correct / total_gold
-    f1 = 2 * p * r / (p + r)
-    printer(f"Precision: {p}, recall: {r}, F1 score: {f1}\n")
-    
-    printer("NER scores below:\n")
-    for i in range(3):
-        printer("Input text:    %s\n" % texts[i])
-        printer("Actual NEs:    %s\n" % targets[i])
-        printer("Predicted NEs: %s\n" % outputs[i])
-        printer("=====================================================================\n")
-
-    return f1

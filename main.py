@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 from typing import List, Any, Union
 from datasets import Dataset
-from eval import pr_score, NER_eval
+from eval import pr_score, object_generation_score
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
@@ -54,7 +54,7 @@ def set_seed(seed):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-def load_pr_dataset(dataset_name:str):
+def load_dataset_name(dataset_name:str):
     # name should be a jsonl file. Originall "punctuation_restoration_dataset.jsonl"
     with open(dataset_name) as f:
         data = []
@@ -71,6 +71,21 @@ def load_pr_dataset(dataset_name:str):
             "dev": dev,
             "test": test
             }
+
+def load_pr_dataset():
+    return load_dataset_name('punctuation_restoration_dataset.jsonl')
+
+def load_conll03_dataset():
+    return load_dataset_name('processed_conll03.jsonly')
+
+def load_prepped_dataset(task_name:str):
+    if task_name == "pr":
+        return load_pr_dataset()
+    elif task_name == "ner":
+        return load_conll03_dataset()
+    else:
+        print(f"invalid task name:{task_name}")
+        return None
 
 class T5ClassificationHead(nn.Module):
     """
@@ -103,7 +118,7 @@ class PRT5(pl.LightningModule):
                  train_batch_size: int,
                  eval_batch_size: int,
                  num_train_epochs: int,
-                 dataset_name: str,
+                 task_name: str,
                  ):
         super().__init__()
         self.save_hyperparameters()
@@ -113,7 +128,7 @@ class PRT5(pl.LightningModule):
         self.model = T5ForConditionalGeneration.from_pretrained(model_name_or_path)
         self.tokenizer = T5TokenizerFast.from_pretrained(model_name_or_path)
         self.test_dl = DataLoader(
-            get_punctuation_dataset(self.tokenizer, "test", self.hparams.max_seq_length, dataset_name),
+            get_punctuation_dataset(self.tokenizer, "test", self.hparams.max_seq_length, task_name),
             batch_size=self.hparams.eval_batch_size,
             num_workers=4,
         )
@@ -204,7 +219,7 @@ class PRT5(pl.LightningModule):
 
     def train_dataloader(self):
         return DataLoader(
-            get_punctuation_dataset(self.tokenizer, "train", self.hparams.max_seq_length, self.hparams.dataset_name),
+            get_punctuation_dataset(self.tokenizer, "train", self.hparams.max_seq_length, self.hparams.task_name),
             batch_size=self.hparams.train_batch_size,
             shuffle=True,
             num_workers=4,
@@ -212,7 +227,7 @@ class PRT5(pl.LightningModule):
 
     def val_dataloader(self):
         return DataLoader(
-            get_punctuation_dataset(self.tokenizer, "dev", self.hparams.max_seq_length, self.hparams.dataset_name),
+            get_punctuation_dataset(self.tokenizer, "dev", self.hparams.max_seq_length, self.hparams.task_name),
             batch_size=self.hparams.eval_batch_size,
             num_workers=4,
         )
@@ -220,9 +235,9 @@ class PRT5(pl.LightningModule):
     def test_dataloader(self):
         return self.test_dl
 
-def get_punctuation_dataset(tokenizer, split: str, max_len: int, dataset_name: str):
+def get_punctuation_dataset(tokenizer, split: str, max_len: int, task_name: str):
     # Load your dataset file, e.g., .pkl or .jsonl
-    data = load_pr_dataset(dataset_name)[split]  # or custom loading logic
+    data = load_prepped_dataset(task_name)[split]  # or custom loading logic
 
     def preprocess(example):
         inputs = tokenizer(example['source'], max_length=max_len, truncation=True, padding="max_length")
@@ -233,9 +248,6 @@ def get_punctuation_dataset(tokenizer, split: str, max_len: int, dataset_name: s
     dataset = Dataset.from_list(data).map(preprocess, batched=True)
     dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
     return dataset
-
-def get_punctuation_dataset_hardcode(tokenizer, split: str, max_len: int):
-    return get_punctuation_dataset(tokenizer, split, max_len, "punctuation_restoration_dataset.jsonl")
 
 class LoggingCallback(pl.Callback):
     def on_validation_end(self, trainer, pl_module):
@@ -282,18 +294,12 @@ def run(
     monitor_metric: str = "val_loss",
     log_every_n_steps: int = 10,
     resume_from_checkpoint: str = None,
-    NER_eval_flag: bool = False,
-    dataset_name: str = "processed_conll03.jsonl",
+    task_name: str = "ner",
     evaluate_only: bool = False,
 ):
     pl.seed_everything(seed)
     set_seed(seed)
     print("running on model", model_name_or_path)
-
-    if evaluate_only:
-        print("only running NER evaluation:")
-        run_NER(dataset_name, output_dir=output_dir, eval_batch_size=32, max_seq_length=256)
-        return
 
     # Model
     model = PRT5(
@@ -306,7 +312,7 @@ def run(
         train_batch_size=train_batch_size,
         eval_batch_size=eval_batch_size,
         num_train_epochs=max_epochs,
-        dataset_name=dataset_name,
+        task_name=task_name,
     )
 
     # Logging
@@ -322,7 +328,7 @@ def run(
         mode="min",
         save_last=True
     )
-
+    
     lr_monitor = LearningRateMonitor(logging_interval='step')
 
     # Trainer
@@ -338,33 +344,60 @@ def run(
     )
 
     # Training
-    trainer.fit(model)
+    if not evaluate_only:
+        trainer.fit(model)
+    else:
+        print("skipping training ...")
 
     # Optionally test on test set (implement test_dataloader in the module first)
     if hasattr(model, 'test_dataloader'):
         trainer.test(model)
     
-    # Get NER evaluation
-    if NER_eval_flag:
+    # Get evaluations
+    if task_name == "ner":
         print("NER evaluation running: ")
-        run_NER(dataset_name, output_dir, eval_batch_size=32, max_seq_length=256)
+        run_NER_eval(task_name, output_dir, eval_batch_size=32, max_seq_length=256)
+    elif task_name == "pr":
+        print("Running pr evaluation")
+        run_pr_eval(task_name, output_dir, eval_batch_size=32, max_seq_length=256)
 
-def run_NER(dataset_name: str, output_dir: str, eval_batch_size: int=32, max_seq_length: int =256):
+
+def run_NER_eval(output_dir: str, eval_batch_size: int=32, max_seq_length: int =256, ckpt_name = ""):
     print("NER evaluation \n")
-    ckpt_path = os.path.join(output_dir, "checkpoints", "last.ckpt")
+    if ckpt_name == "":
+        ckpt = None
+    else:
+        ckpt_path = os.path.join(output_dir, "checkpoints", ckpt_name)
     model = PRT5.load_from_checkpoint(ckpt_path)
     texts, outputs, targets = generate(
-        ckpt = None, # change to checkpoint if desired
-        # ckpt = ckpt_path,
+        ckpt = ckpt_path,
         model=model,
-        input_dataset=get_punctuation_dataset(model.tokenizer, "test", max_seq_length, dataset_name),
+        input_dataset=get_punctuation_dataset(model.tokenizer, "test", max_seq_length, "ner"),
         tokenizer=model.tokenizer,
         batch_size=eval_batch_size,
-        # max_len=max_seq_length,
+        max_len=max_seq_length,
         shuffle=False
     )
     #  NER_eval(texts, outputs, targets, printer=logger.info)
-    NER_eval(texts, outputs, targets)
+    object_generation_score(texts, outputs, targets)
+
+def run_pr_eval(output_dir: str, eval_batch_size: int=32, max_seq_length: int =256, ckpt_name = ""):
+    print("NER evaluation \n")
+    if ckpt_name == "":
+        ckpt = None
+    else:
+        ckpt_path = os.path.join(output_dir, "checkpoints", ckpt_name)
+    model = PRT5.load_from_checkpoint(ckpt_path)
+    texts, outputs, targets = generate(
+        ckpt = ckpt_path,
+        model=model,
+        input_dataset=get_punctuation_dataset(model.tokenizer, "test", max_seq_length, "pr"),
+        tokenizer=model.tokenizer,
+        batch_size=eval_batch_size,
+        max_len=max_seq_length,
+        shuffle=False
+    )
+    pr_score(texts, outputs, targets)
 
 def generate(ckpt: Union[str, None], model, input_dataset, tokenizer, batch_size, max_len=256, num_beams=4, skip_special_tokens=True, shuffle=True):
     if ckpt is not None:
@@ -398,9 +431,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name_or_path", type=str, default="t5-base")
     parser.add_argument("--output_dir", type=str, default="./outputs")
-    parser.add_argument("--NER_eval_flag", action="store_true")
     parser.add_argument("--dataset_name", type=str, default="processed_conll03.jsonl")
     parser.add_argument("--evaluate_only", action="store_true")
+    parser.add_argument("--task_name", type=str, deafult="ner")
     args = parser.parse_args()
     print("inputs are: ", vars(args))
     run(**vars(args))

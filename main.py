@@ -354,18 +354,16 @@ def run(
         trainer.test(model)
     
     # Get evaluations
-    if task_name == "ner":
-        print("NER evaluation running: ")
-        run_NER_eval(task_name, output_dir, eval_batch_size=32, max_seq_length=256)
-    elif task_name == "pr":
-        print("Running pr evaluation")
-        run_pr_eval(task_name, output_dir, eval_batch_size=32, max_seq_length=256)
+    run_eval(task_name, 
+             output_dir, 
+             ckpt_name="",
+             eval_batch_size=eval_batch_size, 
+             max_seq_length=max_seq_length)
 
 
-def run_NER_eval(output_dir: str, eval_batch_size: int=32, max_seq_length: int =256, ckpt_name = ""):
-    print("NER evaluation \n")
+def run_eval(task_name, output_dir,ckpt_name,eval_batch_size, max_seq_length):
     if ckpt_name == "":
-        ckpt = None
+        ckpt_path = None
     else:
         ckpt_path = os.path.join(output_dir, "checkpoints", ckpt_name)
     model = PRT5.load_from_checkpoint(ckpt_path)
@@ -378,26 +376,13 @@ def run_NER_eval(output_dir: str, eval_batch_size: int=32, max_seq_length: int =
         max_len=max_seq_length,
         shuffle=False
     )
-    #  NER_eval(texts, outputs, targets, printer=logger.info)
-    object_generation_score(texts, outputs, targets)
-
-def run_pr_eval(output_dir: str, eval_batch_size: int=32, max_seq_length: int =256, ckpt_name = ""):
-    print("NER evaluation \n")
-    if ckpt_name == "":
-        ckpt = None
-    else:
-        ckpt_path = os.path.join(output_dir, "checkpoints", ckpt_name)
-    model = PRT5.load_from_checkpoint(ckpt_path)
-    texts, outputs, targets = generate(
-        ckpt = ckpt_path,
-        model=model,
-        input_dataset=get_punctuation_dataset(model.tokenizer, "test", max_seq_length, "pr"),
-        tokenizer=model.tokenizer,
-        batch_size=eval_batch_size,
-        max_len=max_seq_length,
-        shuffle=False
-    )
-    pr_score(texts, outputs, targets)
+    if task_name == "ner":
+        print("NER evaluation running: ")
+        object_generation_score(texts, outputs, targets)
+    elif task_name == "pr":
+        print("PR evaluation running: ")
+        pr_score(texts, outputs, targets)
+    
 
 def generate(ckpt: Union[str, None], model, input_dataset, tokenizer, batch_size, max_len=256, num_beams=4, skip_special_tokens=True, shuffle=True):
     if ckpt is not None:
@@ -433,7 +418,7 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", type=str, default="./outputs")
     parser.add_argument("--dataset_name", type=str, default="processed_conll03.jsonl")
     parser.add_argument("--evaluate_only", action="store_true")
-    parser.add_argument("--task_name", type=str, deafult="ner")
+    parser.add_argument("--task_name", type=str, default="ner")
     args = parser.parse_args()
     print("inputs are: ", vars(args))
     run(**vars(args))

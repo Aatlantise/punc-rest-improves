@@ -9,7 +9,7 @@ from train import PRT5
 logging.basicConfig(
     format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level = logging.DEBUG,
-    stream = sys.stdout,
+    stream = sys.stdout
 )
 logger = logging.getLogger(__name__)
 torch.autograd.set_detect_anomaly(True)
@@ -55,21 +55,14 @@ def run(
 
 if __name__ == '__main__':
     run(
-        model_name = 'Baseline PR',
-        ckpt_path = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',
+        model_name = 'Baseline-T5 on SRL',
+        ckpt_path = 'outputs/checkpoints/srl-512tokens.20250722-111511.epoch=1-val_loss=0.0759.ckpt',
         data_path = 'outputs/datasets/conll-2012-srl-512t.jsonl',
         max_seq_length = 512,
     )
     run(
-        model_name = '256-Token SRL',
-        ckpt_path = 'outputs/checkpoints/pr-srl.20250718-045803.epoch=1-val_loss=0.0413.ckpt',
-        data_path = 'outputs/datasets/conll-2012-srl-256t.jsonl',
-        max_seq_length = 256,
-    )
-    run(
-        model_name = '512-Token SRL',
+        model_name = 'PR-T5 on SRL',
         ckpt_path = 'outputs/checkpoints/pr-srl-512tokens.20250721-095450.epoch=1-val_loss=0.0756.ckpt',
         data_path = 'outputs/datasets/conll-2012-srl-512t.jsonl',
         max_seq_length = 512,
     )
-    

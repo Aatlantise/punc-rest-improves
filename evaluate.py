@@ -1,5 +1,3 @@
-## Rex's refactor of eval.py
-
 import logging
 import sys
 import torch
@@ -16,88 +14,62 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 torch.autograd.set_detect_anomaly(True)
 
+def run(
+    model_name: str,
+    ckpt_path: str,
+    data_path: str,
+    max_seq_length: int,
+    eval_batch_size: int = 32,
+    num_workers: int = 4,
+):
+    print(f"=============== {model_name} ===============")
+    model = PRT5.load_from_checkpoint(ckpt_path)
+    logger.info(f'Loaded model {model_name} from checkpoint {ckpt_path}')
+    ds = TrainingData(data_path)
+    logger.info(f'Loaded dataset from path {data_path}')
+    dl = ds.loader(
+        split = 'test',
+        tokenizer = model.tokenizer,
+        max_seq_length = max_seq_length,
+        eval_batch_size = eval_batch_size,
+        num_workers = num_workers,
+    )
+    logger.info(f'Initialized dataloader. Generating outputs...')
+    texts, outputs, targets = model.generate(dl)
+    for i in range(5):
+        print(
+            f"""
+            =============== Generated Output #{i} ===============
+            Text: {texts[i]},
+            Output: {outputs[i]},
+            Target: {targets[i]},
+            """
+        )
+    f1 = pr_score(texts, outputs, targets)
+    print(
+        f"""
+        =============== Evaluation Result ===============
+        F1: {f1},
+        """
+    )
+
 if __name__ == '__main__':
-    print("=============== Baseline PR ===============")
-    model: PRT5 = PRT5.load_from_checkpoint('outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt')
-    ds = TrainingData('outputs/datasets/conll-2012-srl-512t.jsonl')
-    dl = ds.loader(
-        split = 'test',
-        tokenizer = model.tokenizer,
+    run(
+        model_name = 'Baseline PR',
+        ckpt_path = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',
+        data_path = 'outputs/datasets/conll-2012-srl-512t.jsonl',
         max_seq_length = 512,
-        eval_batch_size = 32,
-        num_workers = 4,
     )
-    texts, outputs, targets = model.generate(dl)
-    for i in range(5):
-        print(
-            f"""
-                =============== Generated Output #{i} ===============
-                Text: {texts[i]},
-                Output: {outputs[i]},
-                Target: {targets[i]},
-                """
-        )
-    f1 = pr_score(texts, outputs, targets)
-    print(
-        f"""
-            =============== Evaluation Result ===============
-            F1: {f1},
-            """
-    )
-    
-    print("=============== 256-Token SRL ===============")
-    model: PRT5 = PRT5.load_from_checkpoint('outputs/checkpoints/pr-srl.20250718-045803.epoch=1-val_loss=0.0413.ckpt')
-    ds = TrainingData('outputs/datasets/conll-2012-srl-256t.jsonl')
-    dl = ds.loader(
-        split = 'test',
-        tokenizer = model.tokenizer,
+    run(
+        model_name = '256-Token SRL',
+        ckpt_path = 'outputs/checkpoints/pr-srl.20250718-045803.epoch=1-val_loss=0.0413.ckpt',
+        data_path = 'outputs/datasets/conll-2012-srl-256t.jsonl',
         max_seq_length = 256,
-        eval_batch_size = 32,
-        num_workers = 4,
     )
-    texts, outputs, targets = model.generate(dl)
-    for i in range(5):
-        print(
-            f"""
-            =============== Generated Output #{i} ===============
-            Text: {texts[i]},
-            Output: {outputs[i]},
-            Target: {targets[i]},
-            """
-        )
-    f1 = pr_score(texts, outputs, targets)
-    print(
-        f"""
-        =============== Evaluation Result ===============
-        F1: {f1},
-        """
-    )
-    
-    print("=============== 512-Token SRL ===============")
-    model: PRT5 = PRT5.load_from_checkpoint('outputs/checkpoints/pr-srl-512tokens.20250721-095450.epoch=1-val_loss=0.0756.ckpt')
-    ds = TrainingData('outputs/datasets/conll-2012-srl-512t.jsonl')
-    dl = ds.loader(
-        split = 'test',
-        tokenizer = model.tokenizer,
+    run(
+        model_name = '512-Token SRL',
+        ckpt_path = 'outputs/checkpoints/pr-srl-512tokens.20250721-095450.epoch=1-val_loss=0.0756.ckpt',
+        data_path = 'outputs/datasets/conll-2012-srl-512t.jsonl',
         max_seq_length = 512,
-        eval_batch_size = 32,
-        num_workers = 4,
-    )
-    texts, outputs, targets = model.generate(dl)
-    for i in range(5):
-        print(
-            f"""
-            =============== Generated Output #{i} ===============
-            Text: {texts[i]},
-            Output: {outputs[i]},
-            Target: {targets[i]},
-            """
-        )
-    f1 = pr_score(texts, outputs, targets)
-    print(
-        f"""
-        =============== Evaluation Result ===============
-        F1: {f1},
-        """
     )
     

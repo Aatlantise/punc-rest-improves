@@ -170,7 +170,7 @@ class PRT5(LightningModule):
         num_beams,
         skip_special_tokens,
     ) -> tuple[list[str], list[str], list[str]]:
-        outputs, targets, texts = [], [], []
+        texts, outputs, targets = [], [], []
         with torch.no_grad():
             for batch in tqdm(input_dataloader):
                 outputs.extend(

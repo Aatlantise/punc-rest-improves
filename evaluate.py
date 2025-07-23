@@ -1,5 +1,6 @@
 import json
 import logging
+import os.path
 import sys
 import torch
 
@@ -82,11 +83,21 @@ def run(
         num_workers = num_workers,
     )
     logger.info(f'Initialized dataloader. Generating outputs...')
-    texts, outputs, targets = model.generate(dl)
-    for text, output, target in zip(texts, outputs, targets):
-        with open('outputs/generated/%s.jsonl' % model_name.split(' ', 1)[0], 'w') as f:
-            json.dump({'text': text, 'output': output, 'target': target}, f, ensure_ascii = False)
-            f.write('\n')
+    path = 'outputs/generated/%s.jsonl' % model_name.split(' ', 1)[0]
+    texts, outputs, targets = [], [], []
+    if os.path.isfile(path):
+        with open(path, 'r') as f:
+            for line in f:
+                obj = json.loads(line)
+                texts.append(obj['text'])
+                outputs.append(obj['output'])
+                targets.append(obj['target'])
+    else:
+        texts, outputs, targets = model.generate(dl)
+        for text, output, target in zip(texts, outputs, targets):
+            with open(path, 'w') as f:
+                json.dump({'text': text, 'output': output, 'target': target}, f, ensure_ascii = False)
+                f.write('\n')
     for i in range(5):
         print(
             f"""

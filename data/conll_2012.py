@@ -2,7 +2,7 @@ import logging
 import re
 import sys
 
-from data.modules import PrepData
+from modules import PrepData
 
 
 logging.basicConfig(
@@ -73,29 +73,25 @@ class CoNLL2012(PrepData):
         out: list[tuple[str, dict[str, dict[str, int]]]] = []
         total_labels: int = 0
         for verb_frame in re.findall(r'\S+ \(.*?\)', s.strip(' ,')):
-            front, back = verb_frame.split(' ', 1)
+            verb_frame_parts = verb_frame.split(' ', 1)
+            front, back = verb_frame_parts[0], verb_frame_parts[1]
             verb = front.rstrip(' ')
             verb_dict = {}
             related_words = back.lstrip(' (').rstrip(' )')
             for role_label_members in related_words.split(','):
-                label, members = role_label_members.strip(' ').split(':')
-                label, members = label.strip(' '), members.strip(' ').split(' ')
+                role_label_members_split = role_label_members.strip(' ').split(':')
+                label, members = role_label_members_split[0].strip(' '), role_label_members_split[1].strip(' ').split(' ')
                 verb_dict.setdefault(label, {})
                 for member in members:
                     member = member.strip(' ')
                     verb_dict[label].setdefault(member, 0)
                     verb_dict[label][member] += 1
-                    logger.debug('found label %s' % member)
                     total_labels += 1
             out.append((verb, verb_dict))
         return out, total_labels
         
 
 if __name__ == '__main__':
-    # ds = CoNLL2012()
-    # ds.to_json('conll-2012-srl-512t')
-    a, _ = CoNLL2012.unserialize('eat (A: ham burger, B: chicken), drink (C: coke sprite beer sprite)')
-    b, _ = CoNLL2012.unserialize('eat (B: chicken, A: ham burger), drink (C: sprite sprite beer coke)')
-    print(a)
-    print(b)
-    print(a == b)
+    o = CoNLL2012.unserialize('eat (A: ham burger, B: chicken), drink (C: coke sprite beer sprite)')
+    print(o)
+    

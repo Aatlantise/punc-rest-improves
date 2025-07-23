@@ -55,7 +55,7 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
 
 def load_pr_dataset():
-    with open("outputs/datasets/wiki-20220301-en-pr.jsonl") as f:
+    with open("outputs/datasets/conll-2012-srl.jsonl") as f:
         data = []
         for line in f:
             data.append(json.loads(line))
@@ -269,7 +269,7 @@ def run(
     warmup_steps: int = 0,
     max_seq_length: int = 256,
     seed: int = 42,
-    precision: str = "bf16",  # or "32-true" for FP32
+    precision: str = "bf16-mixed",  # or "32-true" for FP32
     num_workers: int = 4,
     accelerator: str = "gpu",
     devices: int = 1,
@@ -282,17 +282,18 @@ def run(
     set_seed(seed)
 
     # Model
-    model = PRT5(
-        model_name_or_path=model_name_or_path,
-        learning_rate=learning_rate,
-        weight_decay=weight_decay,
-        adam_epsilon=adam_epsilon,
-        warmup_steps=warmup_steps,
-        max_seq_length=max_seq_length,
-        train_batch_size=train_batch_size,
-        eval_batch_size=eval_batch_size,
-        num_train_epochs=max_epochs,
-    )
+    # model = PRT5(
+    #     model_name_or_path=model_name_or_path,
+    #     learning_rate=learning_rate,
+    #     weight_decay=weight_decay,
+    #     adam_epsilon=adam_epsilon,
+    #     warmup_steps=warmup_steps,
+    #     max_seq_length=max_seq_length,
+    #     train_batch_size=train_batch_size,
+    #     eval_batch_size=eval_batch_size,
+    #     num_train_epochs=max_epochs,
+    # )
+    model = PRT5.load_from_checkpoint('outputs/checkpoints/pr-pretrain.ckpt')
 
     # Logging
     logger = TensorBoardLogger(save_dir=output_dir, name="logs")
@@ -300,7 +301,7 @@ def run(
     # Callbacks
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(output_dir, "checkpoints"),
-        filename="{epoch}-{val_loss:.4f}",
+        filename="main-clone-train-srl-{epoch}-{val_loss:.4f}",
         save_top_k=save_top_k,
         verbose=True,
         monitor=monitor_metric,

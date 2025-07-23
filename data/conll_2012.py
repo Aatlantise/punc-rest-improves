@@ -2,7 +2,7 @@ import logging
 import re
 import sys
 
-from modules import PrepData
+from data.modules import PrepData
 
 
 logging.basicConfig(

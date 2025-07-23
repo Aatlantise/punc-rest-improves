@@ -1,6 +1,6 @@
 import json
 import logging
-import os.path
+import os
 import sys
 import torch
 
@@ -85,6 +85,8 @@ def run(
     logger.info(f'Initialized dataloader. Generating outputs...')
     path = 'outputs/generated/%s.jsonl' % model_name.split(' ', 1)[0]
     texts, outputs, targets = [], [], []
+    
+    # Back up / restore generated outputs
     if os.path.isfile(path):
         with open(path, 'r') as f:
             for line in f:
@@ -98,6 +100,7 @@ def run(
             with open(path, 'w') as f:
                 json.dump({'text': text, 'output': output, 'target': target}, f, ensure_ascii = False)
                 f.write('\n')
+                
     for i in range(5):
         print(
             f"""

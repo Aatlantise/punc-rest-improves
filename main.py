@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 from typing import List, Any, Union
 from datasets import Dataset
-from eval import pr_score
+from eval import pr_score, object_generation_score
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
@@ -54,8 +54,9 @@ def set_seed(seed):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
-def load_pr_dataset():
-    with open("punctuation_restoration_dataset.jsonl") as f:
+def load_dataset_name(dataset_name:str):
+    # name should be a jsonl file. Originall "punctuation_restoration_dataset.jsonl"
+    with open(dataset_name) as f:
         data = []
         for line in f:
             data.append(json.loads(line))
@@ -70,6 +71,21 @@ def load_pr_dataset():
             "dev": dev,
             "test": test
             }
+
+def load_pr_dataset():
+    return load_dataset_name('punctuation_restoration_dataset.jsonl')
+
+def load_conll03_dataset():
+    return load_dataset_name('processed_conll03.jsonl')
+
+def load_prepped_dataset(task_name:str):
+    if task_name == "pr":
+        return load_pr_dataset()
+    elif task_name == "ner":
+        return load_conll03_dataset()
+    else:
+        print(f"invalid task name:{task_name}")
+        return None
 
 class T5ClassificationHead(nn.Module):
     """
@@ -102,14 +118,17 @@ class PRT5(pl.LightningModule):
                  train_batch_size: int,
                  eval_batch_size: int,
                  num_train_epochs: int,
+                 task_name: str,
                  ):
         super().__init__()
         self.save_hyperparameters()
+        
+        print(f"\n The model initialised is (model name or path): {model_name_or_path} \n")
 
         self.model = T5ForConditionalGeneration.from_pretrained(model_name_or_path)
         self.tokenizer = T5TokenizerFast.from_pretrained(model_name_or_path)
         self.test_dl = DataLoader(
-            get_punctuation_dataset(self.tokenizer, "test", self.hparams.max_seq_length),
+            get_punctuation_dataset(self.tokenizer, "test", self.hparams.max_seq_length, task_name),
             batch_size=self.hparams.eval_batch_size,
             num_workers=4,
         )
@@ -132,9 +151,9 @@ class PRT5(pl.LightningModule):
         self.log("PR F1 Score: ", score)
 
         # Optionally, write to file for inspection
-        # with open("test_predictions.jsonl", "w") as f:
-        #     for pred, target in zip(all_preds, all_targets):
-        #         f.write(json.dumps({"prediction": pred, "target": target}) + "\n")
+        #  with open("test_predictions.jsonl", "w") as f:
+        #      for pred, target in zip(all_preds, all_targets):
+        #          f.write(json.dumps({"prediction": pred, "target": target}) + "\n")
 
     def training_step(self, batch, batch_idx):
         labels = batch["labels"]
@@ -200,7 +219,7 @@ class PRT5(pl.LightningModule):
 
     def train_dataloader(self):
         return DataLoader(
-            get_punctuation_dataset(self.tokenizer, "train", self.hparams.max_seq_length),
+            get_punctuation_dataset(self.tokenizer, "train", self.hparams.max_seq_length, self.hparams.task_name),
             batch_size=self.hparams.train_batch_size,
             shuffle=True,
             num_workers=4,
@@ -208,7 +227,7 @@ class PRT5(pl.LightningModule):
 
     def val_dataloader(self):
         return DataLoader(
-            get_punctuation_dataset(self.tokenizer, "dev", self.hparams.max_seq_length),
+            get_punctuation_dataset(self.tokenizer, "dev", self.hparams.max_seq_length, self.hparams.task_name),
             batch_size=self.hparams.eval_batch_size,
             num_workers=4,
         )
@@ -216,9 +235,9 @@ class PRT5(pl.LightningModule):
     def test_dataloader(self):
         return self.test_dl
 
-def get_punctuation_dataset(tokenizer, split: str, max_len: int):
+def get_punctuation_dataset(tokenizer, split: str, max_len: int, task_name: str):
     # Load your dataset file, e.g., .pkl or .jsonl
-    data = load_pr_dataset()[split]  # or custom loading logic
+    data = load_prepped_dataset(task_name)[split]  # or custom loading logic
 
     def preprocess(example):
         inputs = tokenizer(example['source'], max_length=max_len, truncation=True, padding="max_length")
@@ -229,8 +248,6 @@ def get_punctuation_dataset(tokenizer, split: str, max_len: int):
     dataset = Dataset.from_list(data).map(preprocess, batched=True)
     dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'labels'])
     return dataset
-
-
 
 class LoggingCallback(pl.Callback):
     def on_validation_end(self, trainer, pl_module):
@@ -277,9 +294,12 @@ def run(
     monitor_metric: str = "val_loss",
     log_every_n_steps: int = 10,
     resume_from_checkpoint: str = None,
+    task_name: str = "ner",
+    evaluate_only: bool = False,
 ):
     pl.seed_everything(seed)
     set_seed(seed)
+    print("running on model", model_name_or_path)
 
     # Model
     model = PRT5(
@@ -292,6 +312,7 @@ def run(
         train_batch_size=train_batch_size,
         eval_batch_size=eval_batch_size,
         num_train_epochs=max_epochs,
+        task_name=task_name,
     )
 
     # Logging
@@ -304,9 +325,10 @@ def run(
         save_top_k=save_top_k,
         verbose=True,
         monitor=monitor_metric,
-        mode="min"
+        mode="min",
+        save_last=True
     )
-
+    
     lr_monitor = LearningRateMonitor(logging_interval='step')
 
     # Trainer
@@ -322,12 +344,44 @@ def run(
     )
 
     # Training
-    trainer.fit(model)
+    if not evaluate_only:
+        trainer.fit(model)
+    else:
+        print("skipping training ...")
 
     # Optionally test on test set (implement test_dataloader in the module first)
     if hasattr(model, 'test_dataloader'):
         trainer.test(model)
+    
+    # Get evaluations
+    run_eval(task_name, 
+             output_dir, 
+             eval_batch_size=eval_batch_size, 
+             max_seq_length=max_seq_length,
+             ckpt_name="last.ckpt")
 
+
+def run_eval(task_name, output_dir,eval_batch_size, max_seq_length,ckpt_name="last.ckpt"):
+    # load last checkpoint (default) or custom checkpoint
+    ckpt_path = os.path.join(output_dir, "checkpoints", ckpt_name)
+    model = PRT5.load_from_checkpoint(ckpt_path, task_name=task_name)
+    
+    texts, outputs, targets = generate(
+        ckpt = None,
+        model=model,
+        input_dataset=get_punctuation_dataset(model.tokenizer, "test", max_seq_length, "ner"),
+        tokenizer=model.tokenizer,
+        batch_size=eval_batch_size,
+        max_len=max_seq_length,
+        shuffle=False
+    )
+    if task_name == "ner":
+        print("NER evaluation running: ")
+        object_generation_score(texts, outputs, targets)
+    elif task_name == "pr":
+        print("PR evaluation running: ")
+        pr_score(texts, outputs, targets)
+    
 
 def generate(ckpt: Union[str, None], model, input_dataset, tokenizer, batch_size, max_len=256, num_beams=4, skip_special_tokens=True, shuffle=True):
     if ckpt is not None:
@@ -341,16 +395,16 @@ def generate(ckpt: Union[str, None], model, input_dataset, tokenizer, batch_size
     targets = []
     texts = []
     for batch in tqdm(dataloader):
-        outs = model.model.generate(input_ids=batch['source_ids'].to("cuda"),
-                                    attention_mask=batch['source_mask'].to("cuda"),
+        outs = model.model.generate(input_ids=batch['input_ids'].to("cuda"),
+                                    attention_mask=batch['attention_mask'].to("cuda"),
                                     max_length=max_len, num_beams=num_beams
                                     )
         dec = [tokenizer.decode(ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=False).strip() for ids in
                outs]
         target = [tokenizer.decode(ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=False).strip()
-                  for ids in batch["target_ids"]]
+                  for ids in batch["labels"]]
         text = [tokenizer.decode(ids, skip_special_tokens=skip_special_tokens, clean_up_tokenization_spaces=False).strip()
-                for ids in batch["source_ids"]]
+                for ids in batch["input_ids"]]
         texts.extend(text)
         outputs.extend(dec)
         targets.extend(target)
@@ -361,5 +415,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name_or_path", type=str, default="t5-base")
     parser.add_argument("--output_dir", type=str, default="./outputs")
+    parser.add_argument("--evaluate_only", action="store_true")
+    parser.add_argument("--task_name", type=str, default="ner")
     args = parser.parse_args()
+    print("inputs are: ", vars(args))
     run(**vars(args))

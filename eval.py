@@ -1,9 +1,16 @@
 from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 from typing import List, Dict, Union
+import re
 
-def clean_split(s: str) -> List[str]:
+def clean_split(s: str) -> list[str]:
     return [k.strip(' ') for k in s.strip(' ').strip(')').strip('(').strip(' ').split(') (')]
+
+# If jsonl data is formatted as "word:label"
+def clean_split_alt(s:str):
+    # return [k.strip(' ') for k in s.strip(' ').strip(')').strip('(').strip(' ').split(') (')]
+    result = re.findall(".+?:[a-z]+", s) # use +? for non-greedy match
+    return [k.strip() for k in result]
 
 def text2triple(outputs, targets):
     output_list = []
@@ -106,6 +113,10 @@ def object_generation_score(texts, outputs, targets, printer=print):
         g = clean_split(t.lower())
         attempts += len(a)
         total_gold += len(g)
+
+        # printer("input: ", sent)
+        # printer("predicted labels: ", a)
+        # printer("gold labels: ", g)
 
         # use exact match
         correct += len([k for k in a if k in g])
@@ -469,15 +480,24 @@ def pr_score(texts, outputs, targets, printer=print):
     len_mismatch = 0
     for source, output, target in zip(texts, outputs, targets):
         # s_tokens = source[32:].split(' ')  # prompt is 32 chars long
-        s_tokens = source.split(' ')
-        o_tokens = output.split(' ')
-        t_tokens = target.split(' ')
+        s_tokens = [text for text in source.split(' ') if text.strip() != '']
+        o_tokens = [text for text in output.split(' ') if text.strip() != '']
+        t_tokens = [text for text in target.split(' ') if text.strip() != '']
+
+        # printer("source: ", source)
+        # printer("output: ", output)
+        # printer("target: ", target)
+        # printer("s_tokens: ", s_tokens)
+        # printer("o_tokens: ", o_tokens)
+        # printer("t_tokens", t_tokens)
+        
 
         if len(s_tokens) != len(o_tokens) or len(s_tokens) != len(t_tokens):
             len_mismatch += 1
-            # printer(
-            #     f"Found length mismatch between source {len(s_tokens)}, output {len(o_tokens)}, target {len(t_tokens)}\n")
-            # printer("Skipping...")
+            printer(
+                f"Found length mismatch between source {len(s_tokens)}, output {len(o_tokens)}, target {len(t_tokens)}\n")
+            printer("Skipping...")
+        
             min_len = min([len(s_tokens), len(o_tokens), len(t_tokens)])
             s_tokens = s_tokens[:min_len]
             o_tokens = o_tokens[:min_len]
@@ -605,3 +625,4 @@ def sbd_score(texts, outputs, targets, printer=print):
                 f"| End|{'%.3f' % e_p}|{'%.3f' % e_r}|{'%.3f' % e_f1}|\n"
                 f"|Macr|{'%.3f' % macro_p}|{'%.3f' % macro_r}|{'%.3f' % macro_f1}|\n")
         return macro_f1
+    

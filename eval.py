@@ -655,22 +655,28 @@ def srl_score(texts: list[str], outputs: list[str], targets: list[str]) -> tuple
         if output_dict == target_dict:
             relevant_retrieved_instances += target_label_count
             continue
-            
+        
+        logger.debug('Original text:')
+        logger.debug(text)
         logger.debug('Generated dictionary: ')
         logger.debug(output_dict)
         logger.debug('Correct dictionary: ')
         logger.debug(target_dict)
         
         acc = 0
-        if output_dict.keys() == target_dict.keys():
-            for verb in target_dict.keys():
-                output_verb_frame = output_dict[verb]
-                target_verb_frame = target_dict[verb]
-                for label in output_verb_frame.keys() & target_verb_frame.keys():
-                    acc += multiset_intersection(
-                        output_verb_frame[label],
-                        target_verb_frame[label],
-                    )
+        for verb in output_dict.keys() & target_dict.keys():
+            output_verb_frame = output_dict[verb]
+            target_verb_frame = target_dict[verb]
+            for label in output_verb_frame.keys() & target_verb_frame.keys():
+                acc += multiset_intersection(
+                    output_verb_frame[label],
+                    target_verb_frame[label],
+                )
+            for label in output_verb_frame.keys() - target_verb_frame.keys():
+                output_frame_elements = output_verb_frame[label]
+                for _, target_frame_elements in target_verb_frame.items():
+                    if output_frame_elements == target_frame_elements:
+                        acc += len(output_frame_elements) * 2 / 3
         logger.debug(f'Scored {acc} with {output_label_count} retrieved and {target_label_count} relevant. ')
         logger.debug('\n')
         relevant_retrieved_instances += acc

@@ -78,26 +78,26 @@ class CoNLL2012(PrepData):
             front, back = verb_frame_parts[0], verb_frame_parts[1]
             verb = front.rstrip(' ')
             verb_counter.setdefault(verb, 0)
-            verb_counter[verb] +=1
+            verb_counter[verb] += 1
             
             verb = f'{verb}_{verb_counter[verb]}'
             out.setdefault(verb, {})
             verb_dict = out[verb]
-            for role_label_members in re.findall(r'[A-Z-]+: .*?\S[,\)]', back.lstrip(' (').rstrip(' ')):
-                role_label_members_split = role_label_members.strip(' ,)').split(':')
-                if len(role_label_members_split) < 2:
+            for label_friends in re.findall(r'[A-Z-]+: .*?\S[,\)]', back.lstrip(' (').rstrip(' ')):
+                label_friends_split = label_friends.strip(' ,)').split(':')
+                if len(label_friends_split) < 2:
                     logger.debug('BAD SPLIT in')
                     logger.debug(f'String: {s}')
                     logger.debug(f'Verb frame: {verb_frame}')
-                    logger.debug(f'Members: {role_label_members}')
+                    logger.debug(f'Members: {label_friends}')
                     continue
-                label, members = role_label_members_split[0].strip(' '), role_label_members_split[1].strip(' ').split(' ')
+                label, friends = label_friends_split[0].strip(' '), label_friends_split[1].strip(' ').split(' ')
                 
                 verb_dict.setdefault(label, {})
-                for member in members:
-                    member = member.strip(' ')
-                    verb_dict[label].setdefault(member, 0)
-                    verb_dict[label][member] += 1
+                for friend in friends:
+                    friend = friend.strip(' ')
+                    verb_dict[label].setdefault(friend, 0)
+                    verb_dict[label][friend] += 1
                     total_labels += 1
             
         return out, total_labels

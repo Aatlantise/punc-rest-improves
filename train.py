@@ -53,14 +53,14 @@ def run(
     ckpt_filename: str,
     data_path: str,
     save_last_epoch: bool,
+    min_epochs: int,
+    max_epochs: int,
     accelerator: str = 'gpu',
     adam_epsilon: float = 1e-8,
     devices: int = 1,
     eval_batch_size: int = 32,
     learning_rate: float = 3e-4,
     log_every_n_steps: int = 10,
-    min_epochs = 3,
-    max_epochs = 3,
     max_seq_length: int = 512,
     model_name_or_path = 'google-t5/t5-base',
     monitor_metric: str = 'val_loss',
@@ -162,7 +162,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '-n', '--ckpt-name',
-        type = str,
+        type = str, required = True,
         help = """
             Name the checkpoints that will be saved for this training.
             Timestamps, val_loss for each epoch might be appended.
@@ -183,22 +183,35 @@ if __name__ == '__main__':
         action = 'store_false',
         help = 'Save the last epoch of training as a checkpoint.'
     )
+    parser.add_argument(
+        '--min-epochs',
+        type = int, default = 1,
+        help = 'Minimum number of epochs to train.'
+    )
+    parser.add_argument(
+        '--max-epochs',
+        type = int, default = 3,
+        help = 'Maximum number of epochs to train.'
+    )
     args = parser.parse_args()
     
-    match args.task:
-        case 'pr':
-            run(
-                data_path = 'outputs/datasets/wiki-20231101.en-pr.jsonl',
-                resume_ckpt = args.resume_ckpt,
-                ckpt_filename = args.ckpt_name or 'pr',
-                save_last_epoch = args.save_last_epoch,
-            )
-        case 'srl':
-            run(
-                data_path = 'outputs/datasets/conll-2012-srl-512t.jsonl',
-                resume_ckpt = args.resume_ckpt or 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',
-                ckpt_filename = args.ckpt_name or 'pr-srl-512t',
-                save_last_epoch = args.save_last_epoch,
-            )
-        case _:
-            raise Exception('Task %s has not been implemented. Aborting...' % args.task)
+    if args.task not in {'pr', 'mlm', 'srl'}:
+        raise Exception('Task %s has not been implemented. Aborting...' % args.task)
+    
+    default_data_paths = {
+        'pr': 'outputs/datasets/wiki-20231101.en-pr.jsonl',
+        'mlm': 'outputs/datasets/wiki-20231101.en-mlm.jsonl',
+        'srl': 'outputs/datasets/conll-2012-srl-512t.jsonl'
+    }
+    default_resume_ckpts = {
+        'srl': 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt'
+    }
+    
+    run(
+        data_path = default_data_paths[args.task],
+        resume_ckpt = default_resume_ckpts.get(args.task) or args.resume_ckpt,
+        ckpt_filename = args.ckpt_name,
+        save_last_epoch = args.save_last_epoch,
+        min_epochs = args.min_epochs,
+        max_epochs = args.max_epochs,
+    )

@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 
+from argparse import ArgumentParser
 from data.modules import TrainData as TrainingData
 from data.conll_2012 import CoNLL2012
 from torch.utils.data import DataLoader
@@ -673,7 +674,7 @@ def run(
     model_name: str,
     ckpt_path: str,
     data_path: str,
-    max_seq_length: int,
+    max_seq_length: int = 512,
     eval_batch_size: int = 32,
     num_workers: int = 4,
 ):
@@ -729,15 +730,38 @@ def run(
 
 
 if __name__ == '__main__':
-    run(
-        model_name = 'Baseline-T5 on SRL',
-        ckpt_path = 'outputs/checkpoints/srl-512tokens.20250722-111511.epoch=1-val_loss=0.0759.ckpt',
-        data_path = 'outputs/datasets/conll-2012-srl-512t.jsonl',
-        max_seq_length = 512,
+    parser = ArgumentParser()
+    parser.add_argument(
+        'task',
+        type = str,
+        help = 'The evaluation to perform.',
     )
-    run(
-        model_name = 'PR-T5 on SRL',
-        ckpt_path = 'outputs/checkpoints/pr-srl-512tokens.20250721-095450.epoch=1-val_loss=0.0756.ckpt',
-        data_path = 'outputs/datasets/conll-2012-srl-512t.jsonl',
-        max_seq_length = 512,
+    parser.add_argument(
+        '-c', '--ckpt',
+        type = str, required = True,
+        help = 'Path to the checkpoint to be evaluated. '
     )
+    parser.add_argument(
+        '-d', '--dataset-jsonl',
+        type = str,
+        help = """
+            A jsonl file containing evaluating data.
+            If left unprovided, a corresponding default jsonl will be used.
+            """,
+    )
+    parser.add_argument(
+        '-n', '--model-name',
+        type = str, required = True,
+        help = 'Name the model that will be evaluated, to be used in result printing. '
+    )
+    args = parser.parse_args()
+    
+    match args.task:
+        case 'srl':
+            run(
+                model_name = args.model_name,
+                ckpt_path = args.ckpt,
+                data_path = args.dataset_jsonl or 'outputs/datasets/conll-2012-srl-512t.jsonl',
+            )
+        case _:
+            raise Exception('Task "%s" has not been implemented. Aborting...' % args.task)

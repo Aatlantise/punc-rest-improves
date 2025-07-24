@@ -77,9 +77,10 @@ class CoNLL2012(PrepData):
             front, back = verb_frame_parts[0], verb_frame_parts[1]
             verb = front.rstrip(' ')
             verb_dict = {}
-            related_words = back.lstrip(' (').rstrip(' )')
-            for role_label_members in related_words.split(','):
-                role_label_members_split = role_label_members.strip(' ').split(':')
+            related_words = back.lstrip(' (').rstrip(' ')
+            print(related_words)
+            for role_label_members in re.findall(r'[A-Z-]+: .*?\S[,\)]', related_words):
+                role_label_members_split = role_label_members.strip(' ,)').split(':')
                 if len(role_label_members_split) < 2:
                     logger.debug('BAD SPLIT in')
                     logger.debug(f'String: {s}')
@@ -98,6 +99,6 @@ class CoNLL2012(PrepData):
         
 
 if __name__ == '__main__':
-    o = CoNLL2012.unserialize('eat (A: ham burger, B: chicken), drink (C: coke sprite beer sprite)')
+    o = CoNLL2012.unserialize('eat (A: ham burger, B: chicken , cupcake), drink (C: coke sprite beer sprite)')
     print(o)
     

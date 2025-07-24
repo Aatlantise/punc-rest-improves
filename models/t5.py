@@ -105,21 +105,7 @@ class PRT5(LightningModule):
         )
     
     def on_test_epoch_end(self):
-        logger.debug('test epoch ended')
-        all_predictions = []
-        all_targets = []
-        for output in self.outputs:
-            all_predictions.extend(output['predictions'])
-            all_targets.extend(output['targets'])
-        self._verify_data_stored()
-        all_sources = self.training_data.data['source']
-        # Evaluate with chosen metric
-        score = pr_score(all_sources, all_predictions, all_targets)
-        self.log("PR F1 Score: ", score)
-        # Optionally, write to file for inspection
-        # with open(self['epoch_end_result_path'], 'w') as f:
-        #     for prediction, target, source in zip(all_predictions, all_targets, all_sources):
-        #         f.write(json.dumps({'prediction': prediction, 'target': target, 'source': source}) + '\n')
+        logger.info('Test epoch ended')
                 
     def save(self, path: str):
         """Save model parameters to path"""

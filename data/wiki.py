@@ -1,7 +1,7 @@
 import nltk
 import re
 
-from modules import PrepData
+from data.modules import PrepData
 from nltk.tokenize import sent_tokenize, word_tokenize
 
 

@@ -652,18 +652,27 @@ def srl_score(texts: list[str], outputs: list[str], targets: list[str]) -> tuple
         if output_dict == target_dict:
             relevant_retrieved_instances += target_label_count
             continue
+        logger.debug('Generated dictionary: ')
+        logger.debug(output_dict)
+        logger.debug('Correct dictionary: ')
+        logger.debug(target_dict)
         output_verbs = [a for (a, b) in output_dict]
         target_verbs = [a for (a, b) in target_dict]
+        acc = 0
         if output_verbs == target_verbs:
             for j in range(len(output_verbs)):
                 _, output_verb_frame = output_dict[j]
                 _, target_verb_frame = target_dict[j]
                 for label in output_verb_frame.keys() & target_verb_frame.keys():
-                    relevant_retrieved_instances += multiset_intersection(
+                    acc += multiset_intersection(
                         output_verb_frame[label],
                         target_verb_frame[label],
                     )
-    
+        logger.debug(f'Scored {acc} with {output_label_count} retrieved and {target_label_count} relevant. ')
+        logger.debug('\n')
+        relevant_retrieved_instances += acc
+        acc = 0
+        
     precision = relevant_retrieved_instances / retrieved_instances
     recall = relevant_retrieved_instances / relevant_instances
     f1 = 2 * precision * recall / (precision + recall)

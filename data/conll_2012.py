@@ -78,7 +78,6 @@ class CoNLL2012(PrepData):
             verb = front.rstrip(' ')
             verb_dict = {}
             related_words = back.lstrip(' (').rstrip(' ')
-            print(related_words)
             for role_label_members in re.findall(r'[A-Z-]+: .*?\S[,\)]', related_words):
                 role_label_members_split = role_label_members.strip(' ,)').split(':')
                 if len(role_label_members_split) < 2:

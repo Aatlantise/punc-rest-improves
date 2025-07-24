@@ -80,6 +80,7 @@ class CoNLL2012(PrepData):
             related_words = back.lstrip(' (').rstrip(' )')
             for role_label_members in related_words.split(','):
                 role_label_members_split = role_label_members.strip(' ').split(':')
+                logger.info('role_label_members_split: "%s"' % role_label_members_split)
                 label, members = role_label_members_split[0].strip(' '), role_label_members_split[1].strip(' ').split(' ')
                 verb_dict.setdefault(label, {})
                 for member in members:

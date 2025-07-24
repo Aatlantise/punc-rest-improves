@@ -690,12 +690,12 @@ def run(
         eval_batch_size = eval_batch_size,
         num_workers = num_workers,
     )
-    logger.info(f'Initialized dataloader. Generating outputs...')
+    logger.info('Initialized dataloader. ')
+    
     path = 'outputs/generated/%s.jsonl' % model_name.split(' ', 1)[0]
     texts, outputs, targets = [], [], []
-    
-    # Back up / restore generated outputs
     if os.path.isfile(path):
+        logger.info('Restoring outputs from %s.' % path)
         with open(path, 'r') as f:
             for line in f:
                 obj = json.loads(line)
@@ -703,12 +703,15 @@ def run(
                 outputs.append(obj['output'])
                 targets.append(obj['target'])
     else:
+        logger.info('Generating outputs.')
         texts, outputs, targets = model.generate(dl)
+        logger.info('Backing up outputs to %s.' % path)
         for text, output, target in zip(texts, outputs, targets):
             with open(path, 'w') as f:
                 json.dump({'text': text, 'output': output, 'target': target}, f, ensure_ascii = False)
                 f.write('\n')
     
+    logger.info('Printing generated samples.')
     for i in range(5):
         print(
             f"""
@@ -718,6 +721,8 @@ def run(
             Target: {targets[i]},
             """
         )
+    
+    logger.info('Evaluating SRL score.')
     p, r, f1 = srl_score(texts, outputs, targets)
     print(
         f"""

@@ -52,7 +52,7 @@ class CoNLL2012(PrepData):
                 yield source, target.rstrip(' ,')
     
     @staticmethod
-    def unserialize(s: str) -> tuple[list[tuple[str, dict[str, dict[str, int]]]], int]:
+    def unserialize(s: str) -> tuple[dict[str, dict[str, dict[str, int]]], int]:
         """
         Given a sequence, divide it into verb frames,
         then for each verb, list the semantic roles and words in the same sentence with that role in a multiset,
@@ -70,15 +70,20 @@ class CoNLL2012(PrepData):
         },
         7
         """
-        out: list[tuple[str, dict[str, dict[str, int]]]] = []
+        out: dict[str, dict[str, dict[str, int]]] = {}
+        verb_counter: dict[str, int] = {}
         total_labels: int = 0
         for verb_frame in re.findall(r'\S+ \(.*?\)', s.strip(' ,')):
             verb_frame_parts = verb_frame.split(' ', 1)
             front, back = verb_frame_parts[0], verb_frame_parts[1]
             verb = front.rstrip(' ')
-            verb_dict = {}
-            related_words = back.lstrip(' (').rstrip(' ')
-            for role_label_members in re.findall(r'[A-Z-]+: .*?\S[,\)]', related_words):
+            verb_counter.setdefault(verb, 0)
+            verb_counter[verb] +=1
+            
+            verb = f'{verb}_{verb_counter[verb]}'
+            out.setdefault(verb, {})
+            verb_dict = out[verb]
+            for role_label_members in re.findall(r'[A-Z-]+: .*?\S[,\)]', back.lstrip(' (').rstrip(' ')):
                 role_label_members_split = role_label_members.strip(' ,)').split(':')
                 if len(role_label_members_split) < 2:
                     logger.debug('BAD SPLIT in')
@@ -87,13 +92,14 @@ class CoNLL2012(PrepData):
                     logger.debug(f'Members: {role_label_members}')
                     continue
                 label, members = role_label_members_split[0].strip(' '), role_label_members_split[1].strip(' ').split(' ')
+                
                 verb_dict.setdefault(label, {})
                 for member in members:
                     member = member.strip(' ')
                     verb_dict[label].setdefault(member, 0)
                     verb_dict[label][member] += 1
                     total_labels += 1
-            out.append((verb, verb_dict))
+            
         return out, total_labels
         
 

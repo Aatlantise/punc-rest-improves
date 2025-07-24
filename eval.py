@@ -645,24 +645,27 @@ def srl_score(texts: list[str], outputs: list[str], targets: list[str]) -> tuple
     relevant_retrieved_instances, retrieved_instances, relevant_instances = 0, 0, 0
     for i in range(total):
         text, output, target = texts[i], outputs[i], targets[i]
+        
         output_dict, output_label_count = CoNLL2012.unserialize(output)
         retrieved_instances += output_label_count
+        
         target_dict, target_label_count = CoNLL2012.unserialize(target)
         relevant_instances += target_label_count
+        
         if output_dict == target_dict:
             relevant_retrieved_instances += target_label_count
             continue
+            
         logger.debug('Generated dictionary: ')
         logger.debug(output_dict)
         logger.debug('Correct dictionary: ')
         logger.debug(target_dict)
-        output_verbs = [a for (a, b) in output_dict]
-        target_verbs = [a for (a, b) in target_dict]
+        
         acc = 0
-        if output_verbs == target_verbs:
-            for j in range(len(output_verbs)):
-                _, output_verb_frame = output_dict[j]
-                _, target_verb_frame = target_dict[j]
+        if output_dict.keys() == target_dict.keys():
+            for verb in target_dict.keys():
+                output_verb_frame = output_dict[verb]
+                target_verb_frame = target_dict[verb]
                 for label in output_verb_frame.keys() & target_verb_frame.keys():
                     acc += multiset_intersection(
                         output_verb_frame[label],

@@ -70,25 +70,21 @@ class CoNLL2012(PrepData):
         },
         7
         """
-        logger.debug('Unserialize: got string')
-        logger.debug(s)
         out: list[tuple[str, dict[str, dict[str, int]]]] = []
         total_labels: int = 0
         for verb_frame in re.findall(r'\S+ \(.*?\)', s.strip(' ,')):
-            logger.debug('Unserialize: found verb frame')
-            logger.debug(verb_frame)
             verb_frame_parts = verb_frame.split(' ', 1)
             front, back = verb_frame_parts[0], verb_frame_parts[1]
             verb = front.rstrip(' ')
             verb_dict = {}
             related_words = back.lstrip(' (').rstrip(' )')
             for role_label_members in related_words.split(','):
-                logger.debug('Unserialize: found role label members string')
-                logger.debug(role_label_members)
                 role_label_members_split = role_label_members.strip(' ').split(':')
                 if len(role_label_members_split) < 2:
-                    logger.debug('BAD SPLIT')
-                    logger.debug(role_label_members_split)
+                    logger.debug('BAD SPLIT in')
+                    logger.debug(f'String: {s}')
+                    logger.debug(f'Verb frame: {verb_frame}')
+                    logger.debug(f'Members: {role_label_members}')
                     continue
                 label, members = role_label_members_split[0].strip(' '), role_label_members_split[1].strip(' ').split(' ')
                 verb_dict.setdefault(label, {})

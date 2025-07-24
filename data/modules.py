@@ -93,3 +93,5 @@ class TrainData:
         ds.set_format(type = 'torch', columns = ['input_ids', 'attention_mask', 'labels'])
         dl = DataLoader(ds, batch_size = eval_batch_size, **kwargs)
         return dl
+    
+    

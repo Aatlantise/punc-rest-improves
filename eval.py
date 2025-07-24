@@ -1,6 +1,22 @@
+import json
+import logging
+import os
+import sys
+
+from argparse import ArgumentParser
+from data.modules import TrainData as TrainingData
+from data.conll_2012 import CoNLL2012
+from torch.utils.data import DataLoader
+from train import PRT5
 from tqdm import tqdm
-from torch.utils.data import Dataset, DataLoader
 from typing import List, Dict, Union
+
+logging.basicConfig(
+    format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level = logging.DEBUG,
+    stream = sys.stdout
+)
+logger = logging.getLogger(__name__)
 
 def clean_split(s: str) -> List[str]:
     return [k.strip(' ') for k in s.strip(' ').strip(')').strip('(').strip(' ').split(') (')]
@@ -605,3 +621,152 @@ def sbd_score(texts, outputs, targets, printer=print):
                 f"| End|{'%.3f' % e_p}|{'%.3f' % e_r}|{'%.3f' % e_f1}|\n"
                 f"|Macr|{'%.3f' % macro_p}|{'%.3f' % macro_r}|{'%.3f' % macro_f1}|\n")
         return macro_f1
+
+
+def multiset_intersection(a, b):
+    """The key types should be hashable of course, and the values numerics"""
+    total = 0
+    for key in a.keys() & b.keys():
+        total += min(a[key], b[key])
+    return total
+
+
+def srl_score(texts: list[str], outputs: list[str], targets: list[str]) -> tuple[float, float, float]:
+    """Calculate precision, recall, and F1 score for SRL task on CoNLL 2012"""
+    total = min(len(texts), len(outputs), len(targets))
+    logger.info('SRL eval: length %d' % total)
+    if total != len(texts):
+        logger.warning('SRL eval: length mismatch: there are %d texts instead of %d' % (len(texts), total))
+    if total != len(outputs):
+        logger.warning('SRL eval: length mismatch: there are %d outputs instead of %d' % (len(outputs), total))
+    if total != len(targets):
+        logger.warning('SRL eval: length mismatch: there are %d targets instead of %d' % (len(targets), total))
+    
+    relevant_retrieved_instances, retrieved_instances, relevant_instances = 0, 0, 0
+    for i in range(total):
+        text, output, target = texts[i], outputs[i], targets[i]
+        output_dict, output_label_count = CoNLL2012.unserialize(output)
+        retrieved_instances += output_label_count
+        target_dict, target_label_count = CoNLL2012.unserialize(target)
+        relevant_instances += target_label_count
+        if output_dict == target_dict:
+            relevant_retrieved_instances += target_label_count
+            continue
+        output_verbs = [a for (a, b) in output_dict]
+        target_verbs = [a for (a, b) in target_dict]
+        if output_verbs == target_verbs:
+            for j in range(len(output_verbs)):
+                _, output_verb_frame = output_dict[j]
+                _, target_verb_frame = target_dict[j]
+                for label in output_verb_frame.keys() & target_verb_frame.keys():
+                    relevant_retrieved_instances += multiset_intersection(
+                        output_verb_frame[label],
+                        target_verb_frame[label],
+                    )
+    
+    precision = relevant_retrieved_instances / retrieved_instances
+    recall = relevant_retrieved_instances / relevant_instances
+    f1 = 2 * precision * recall / (precision + recall)
+    return precision, recall, f1
+
+
+def run(
+    model_name: str,
+    ckpt_path: str,
+    data_path: str,
+    max_seq_length: int = 512,
+    eval_batch_size: int = 32,
+    num_workers: int = 4,
+):
+    print(f"=============== {model_name} ===============")
+    model = PRT5.load_from_checkpoint(ckpt_path)
+    logger.info(f'Loaded model {model_name} from checkpoint {ckpt_path}')
+    ds = TrainingData(data_path)
+    logger.info(f'Loaded dataset from path {data_path}')
+    dl = ds.loader(
+        split = 'test',
+        tokenizer = model.tokenizer,
+        max_seq_length = max_seq_length,
+        eval_batch_size = eval_batch_size,
+        num_workers = num_workers,
+    )
+    logger.info('Initialized dataloader. ')
+    
+    path = 'outputs/generated/%s.jsonl' % model_name.split(' ', 1)[0]
+    texts, outputs, targets = [], [], []
+    if os.path.isfile(path):
+        logger.info('Restoring outputs from %s.' % path)
+        with open(path, 'r') as f:
+            for line in f:
+                obj = json.loads(line)
+                texts.append(obj['text'])
+                outputs.append(obj['output'])
+                targets.append(obj['target'])
+    else:
+        logger.info('Generating outputs.')
+        texts, outputs, targets = model.generate(dl)
+        logger.info('Backing up outputs to %s.' % path)
+        for text, output, target in zip(texts, outputs, targets):
+            with open(path, 'w') as f:
+                json.dump({'text': text, 'output': output, 'target': target}, f, ensure_ascii = False)
+                f.write('\n')
+    
+    logger.info('Printing generated samples.')
+    for i in range(5):
+        print(
+            f"""
+            =============== Generated Output #{i} ===============
+            Text: {texts[i]},
+            Output: {outputs[i]},
+            Target: {targets[i]},
+            """
+        )
+    
+    logger.info('Evaluating SRL score.')
+    p, r, f1 = srl_score(texts, outputs, targets)
+    print(
+        f"""
+        =============== Evaluation Result ===============
+        Precision: {p},
+        Recall: {r},
+        F1: {f1},
+        """
+    )
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument(
+        'task',
+        type = str,
+        help = 'The evaluation to perform.',
+    )
+    parser.add_argument(
+        '-c', '--ckpt',
+        type = str, required = True,
+        help = 'Path to the checkpoint to be evaluated. '
+    )
+    parser.add_argument(
+        '-d', '--dataset-jsonl',
+        type = str,
+        help = """
+            A jsonl file containing evaluating data.
+            If left unprovided, a corresponding default jsonl will be used.
+            """,
+    )
+    parser.add_argument(
+        '-n', '--model-name',
+        type = str, required = True,
+        help = 'Name the model that will be evaluated, to be used in result printing. '
+    )
+    args = parser.parse_args()
+    
+    match args.task:
+        case 'srl':
+            run(
+                model_name = args.model_name,
+                ckpt_path = args.ckpt,
+                data_path = args.dataset_jsonl or 'outputs/datasets/conll-2012-srl-512t.jsonl',
+            )
+        case _:
+            raise Exception('Task "%s" has not been implemented. Aborting...' % args.task)

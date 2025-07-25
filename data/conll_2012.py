@@ -73,28 +73,18 @@ class CoNLL2012(PrepData):
         out: dict[str, dict[str, dict[str, int]]] = {}
         verb_counter: dict[str, int] = {}
         total_labels: int = 0
-        for verb_frame in re.findall(r'\S+ \(.*?\)', s.strip(' ,')):
-            verb_frame_parts = verb_frame.split(' ', 1)
-            front, back = verb_frame_parts[0], verb_frame_parts[1]
-            verb = front.rstrip(' ')
+        for verb_frame in re.finditer(r'(\S+) \((.*?\))', s.strip(' ,')):
+            verb, bracket_content = verb_frame.group(1), verb_frame.group(2)
             verb_counter.setdefault(verb, 0)
             verb_counter[verb] += 1
             
             verb = f'{verb}_{verb_counter[verb]}'
             out.setdefault(verb, {})
             verb_dict = out[verb]
-            for label_friends in re.findall(r'[A-Z-]+: .*?\S[,\)]', back.lstrip(' (').rstrip(' ')):
-                label_friends_split = label_friends.strip(' ,)').split(':')
-                if len(label_friends_split) < 2:
-                    logger.debug('BAD SPLIT in')
-                    logger.debug(f'String: {s}')
-                    logger.debug(f'Verb frame: {verb_frame}')
-                    logger.debug(f'Members: {label_friends}')
-                    continue
-                label, friends = label_friends_split[0].strip(' '), label_friends_split[1].strip(' ').split(' ')
-                
+            for label_friends in re.finditer(r'([A-Z\-\d]+): (.*?\S)[,)]', bracket_content):
+                label, friends = label_friends.group(1), label_friends.group(2)
                 verb_dict.setdefault(label, {})
-                for friend in friends:
+                for friend in friends.split():
                     friend = friend.strip(' ')
                     verb_dict[label].setdefault(friend, 0)
                     verb_dict[label][friend] += 1
@@ -104,6 +94,6 @@ class CoNLL2012(PrepData):
         
 
 if __name__ == '__main__':
-    o = CoNLL2012.unserialize('eat (A: ham burger, B: chicken , cupcake), drink (C: coke sprite beer sprite)')
+    o = CoNLL2012.unserialize("know (ARG0: You, ARGM-NEG: n't, V: know, ARG1: that, ARGM-ADV: going into a job), going (V: going, ARG2: into a job)")
     print(o)
     

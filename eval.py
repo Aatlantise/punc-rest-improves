@@ -642,28 +642,22 @@ def srl_score(texts: list[str], outputs: list[str], targets: list[str]) -> tuple
     if total != len(targets):
         logger.warning('SRL eval: length mismatch: there are %d targets instead of %d' % (len(targets), total))
     
-    relevant_retrieved_instances, retrieved_instances, relevant_instances = 0, 0, 0
+    logger.debug('Evaluating. Imperfect attempts will be logged. \n')
+    num_correct, num_attempted, num_gold = 0, 0, 0
     for i in range(total):
         text, output, target = texts[i], outputs[i], targets[i]
         
         output_dict, output_label_count = CoNLL2012.unserialize(output)
-        retrieved_instances += output_label_count
+        num_attempted += output_label_count
         
         target_dict, target_label_count = CoNLL2012.unserialize(target)
-        relevant_instances += target_label_count
+        num_gold += target_label_count
         
         if output_dict == target_dict:
-            relevant_retrieved_instances += target_label_count
+            num_correct += target_label_count
             continue
         
-        logger.debug('Original text:')
-        logger.debug(text)
-        logger.debug('Generated dictionary: ')
-        logger.debug(output_dict)
-        logger.debug('Correct dictionary: ')
-        logger.debug(target_dict)
-        
-        acc = 0
+        acc, mislabeled = 0, 0
         for verb in output_dict.keys() & target_dict.keys():
             output_verb_frame = output_dict[verb]
             target_verb_frame = target_dict[verb]
@@ -676,14 +670,25 @@ def srl_score(texts: list[str], outputs: list[str], targets: list[str]) -> tuple
                 output_frame_elements = output_verb_frame[label]
                 for _, target_frame_elements in target_verb_frame.items():
                     if output_frame_elements == target_frame_elements:
-                        acc += len(output_frame_elements) * 2 / 3
-        logger.debug(f'Scored {acc} with {output_label_count} retrieved and {target_label_count} relevant. ')
-        logger.debug('\n')
-        relevant_retrieved_instances += acc
-        acc = 0
+                        # acc += len(output_frame_elements) * 2 / 3
+                        mislabeled += len(output_frame_elements)
+        print(
+            f"""
+            =============== Incorrect Output ===============
+            Text:   {text}
+            Output: {output}
+            Target: {target}
+            =============== Scoring ===============
+            {acc} with {output_label_count} attempted and {target_label_count} gold; {mislabeled} mislabeled.
+            
+            """
+        )
         
-    precision = relevant_retrieved_instances / retrieved_instances
-    recall = relevant_retrieved_instances / relevant_instances
+        num_correct += acc
+        acc, mislabeled = 0, 0
+        
+    precision = num_correct / num_attempted
+    recall = num_correct / num_gold
     f1 = 2 * precision * recall / (precision + recall)
     return precision, recall, f1
 
@@ -696,20 +701,6 @@ def run(
     eval_batch_size: int = 32,
     num_workers: int = 4,
 ):
-    print(f"=============== {model_name} ===============")
-    model = PRT5.load_from_checkpoint(ckpt_path)
-    logger.info(f'Loaded model {model_name} from checkpoint {ckpt_path}')
-    ds = TrainData(data_path)
-    logger.info(f'Loaded dataset from path {data_path}')
-    dl = ds.loader(
-        split = 'test',
-        tokenizer = model.tokenizer,
-        max_seq_length = max_seq_length,
-        eval_batch_size = eval_batch_size,
-        num_workers = num_workers,
-    )
-    logger.info('Initialized dataloader. ')
-    
     path = 'outputs/generated/%s.jsonl' % model_name.split(' ', 1)[0]
     texts, outputs, targets = [], [], []
     if os.path.isfile(path):
@@ -721,6 +712,18 @@ def run(
                 outputs.append(obj['output'])
                 targets.append(obj['target'])
     else:
+        logger.info(f'Loading model {model_name} from checkpoint {ckpt_path}')
+        model = PRT5.load_from_checkpoint(ckpt_path)
+        logger.info(f'Loading dataset from path {data_path}')
+        ds = TrainData(data_path)
+        logger.info('Initializing dataloader. ')
+        dl = ds.loader(
+            split = 'test',
+            tokenizer = model.tokenizer,
+            max_seq_length = max_seq_length,
+            eval_batch_size = eval_batch_size,
+            num_workers = num_workers,
+        )
         logger.info('Generating outputs.')
         texts, outputs, targets = model.generate(dl)
         logger.info('Backing up outputs to %s.' % path)

@@ -11,7 +11,7 @@ logging.basicConfig(
     level = logging.DEBUG,
     stream = sys.stdout,
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('data/modules')
 
 
 class PrepData:

@@ -4,7 +4,7 @@ import os
 import sys
 
 from argparse import ArgumentParser
-from data.modules import TrainData as TrainingData
+from data.modules import TrainData
 from data.conll_2012 import CoNLL2012
 from torch.utils.data import DataLoader
 from train import PRT5
@@ -699,7 +699,7 @@ def run(
     print(f"=============== {model_name} ===============")
     model = PRT5.load_from_checkpoint(ckpt_path)
     logger.info(f'Loaded model {model_name} from checkpoint {ckpt_path}')
-    ds = TrainingData(data_path)
+    ds = TrainData(data_path)
     logger.info(f'Loaded dataset from path {data_path}')
     dl = ds.loader(
         split = 'test',

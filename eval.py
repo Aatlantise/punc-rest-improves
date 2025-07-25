@@ -645,25 +645,43 @@ def srl_score(texts: list[str], outputs: list[str], targets: list[str]) -> tuple
     relevant_retrieved_instances, retrieved_instances, relevant_instances = 0, 0, 0
     for i in range(total):
         text, output, target = texts[i], outputs[i], targets[i]
+        
         output_dict, output_label_count = CoNLL2012.unserialize(output)
         retrieved_instances += output_label_count
+        
         target_dict, target_label_count = CoNLL2012.unserialize(target)
         relevant_instances += target_label_count
+        
         if output_dict == target_dict:
             relevant_retrieved_instances += target_label_count
             continue
-        output_verbs = [a for (a, b) in output_dict]
-        target_verbs = [a for (a, b) in target_dict]
-        if output_verbs == target_verbs:
-            for j in range(len(output_verbs)):
-                _, output_verb_frame = output_dict[j]
-                _, target_verb_frame = target_dict[j]
-                for label in output_verb_frame.keys() & target_verb_frame.keys():
-                    relevant_retrieved_instances += multiset_intersection(
-                        output_verb_frame[label],
-                        target_verb_frame[label],
-                    )
-    
+        
+        logger.debug('Original text:')
+        logger.debug(text)
+        logger.debug('Generated dictionary: ')
+        logger.debug(output_dict)
+        logger.debug('Correct dictionary: ')
+        logger.debug(target_dict)
+        
+        acc = 0
+        for verb in output_dict.keys() & target_dict.keys():
+            output_verb_frame = output_dict[verb]
+            target_verb_frame = target_dict[verb]
+            for label in output_verb_frame.keys() & target_verb_frame.keys():
+                acc += multiset_intersection(
+                    output_verb_frame[label],
+                    target_verb_frame[label],
+                )
+            for label in output_verb_frame.keys() - target_verb_frame.keys():
+                output_frame_elements = output_verb_frame[label]
+                for _, target_frame_elements in target_verb_frame.items():
+                    if output_frame_elements == target_frame_elements:
+                        acc += len(output_frame_elements) * 2 / 3
+        logger.debug(f'Scored {acc} with {output_label_count} retrieved and {target_label_count} relevant. ')
+        logger.debug('\n')
+        relevant_retrieved_instances += acc
+        acc = 0
+        
     precision = relevant_retrieved_instances / retrieved_instances
     recall = relevant_retrieved_instances / relevant_instances
     f1 = 2 * precision * recall / (precision + recall)

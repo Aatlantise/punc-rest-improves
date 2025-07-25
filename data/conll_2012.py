@@ -52,12 +52,12 @@ class CoNLL2012(PrepData):
                 yield source, target.rstrip(' ,')
     
     @staticmethod
-    def unserialize(s: str) -> tuple[list[tuple[str, dict[str, dict[str, int]]]], int]:
+    def unserialize(s: str) -> tuple[dict[str, dict[str, dict[str, int]]], int]:
         """
         Given a sequence, divide it into verb frames,
         then for each verb, list the semantic roles and words in the same sentence with that role in a multiset,
         along with the total number of semantic role labels,
-        
+
         For example: the string 'eat (A: ham burger, B: chicken), drink (C: coke sprite beer sprite)' will return
         {
             'eat': {
@@ -70,38 +70,40 @@ class CoNLL2012(PrepData):
         },
         7
         """
-        logger.debug('Unserialize: got string')
-        logger.debug(s)
-        out: list[tuple[str, dict[str, dict[str, int]]]] = []
+        out: dict[str, dict[str, dict[str, int]]] = {}
+        verb_counter: dict[str, int] = {}
         total_labels: int = 0
         for verb_frame in re.findall(r'\S+ \(.*?\)', s.strip(' ,')):
-            logger.debug('Unserialize: found verb frame')
-            logger.debug(verb_frame)
             verb_frame_parts = verb_frame.split(' ', 1)
             front, back = verb_frame_parts[0], verb_frame_parts[1]
             verb = front.rstrip(' ')
-            verb_dict = {}
-            related_words = back.lstrip(' (').rstrip(' )')
-            for role_label_members in related_words.split(','):
-                logger.debug('Unserialize: found role label members string')
-                logger.debug(role_label_members)
-                role_label_members_split = role_label_members.strip(' ').split(':')
-                if len(role_label_members_split) < 2:
-                    logger.debug('BAD SPLIT')
-                    logger.debug(role_label_members_split)
+            verb_counter.setdefault(verb, 0)
+            verb_counter[verb] += 1
+            
+            verb = f'{verb}_{verb_counter[verb]}'
+            out.setdefault(verb, {})
+            verb_dict = out[verb]
+            for label_friends in re.findall(r'[A-Z-]+: .*?\S[,\)]', back.lstrip(' (').rstrip(' ')):
+                label_friends_split = label_friends.strip(' ,)').split(':')
+                if len(label_friends_split) < 2:
+                    logger.debug('BAD SPLIT in')
+                    logger.debug(f'String: {s}')
+                    logger.debug(f'Verb frame: {verb_frame}')
+                    logger.debug(f'Members: {label_friends}')
                     continue
-                label, members = role_label_members_split[0].strip(' '), role_label_members_split[1].strip(' ').split(' ')
+                label, friends = label_friends_split[0].strip(' '), label_friends_split[1].strip(' ').split(' ')
+                
                 verb_dict.setdefault(label, {})
-                for member in members:
-                    member = member.strip(' ')
-                    verb_dict[label].setdefault(member, 0)
-                    verb_dict[label][member] += 1
+                for friend in friends:
+                    friend = friend.strip(' ')
+                    verb_dict[label].setdefault(friend, 0)
+                    verb_dict[label][friend] += 1
                     total_labels += 1
-            out.append((verb, verb_dict))
+            
         return out, total_labels
         
 
 if __name__ == '__main__':
-    o = CoNLL2012.unserialize('eat (A: ham burger, B: chicken), drink (C: coke sprite beer sprite)')
+    o = CoNLL2012.unserialize('eat (A: ham burger, B: chicken , cupcake), drink (C: coke sprite beer sprite)')
     print(o)
     

@@ -60,11 +60,11 @@ class CoNLL2012(PrepData):
 
         For example: the string 'eat (A: ham burger, B: chicken), drink (C: coke sprite beer sprite)' will return
         {
-            'eat': {
+            'eat_1': {
                 'A': {'ham': 1, 'burger': 1},
                 'B': {'chicken': 1},
             },
-            'drink': {
+            'drink_1': {
                 'C': {'coke': 1, 'sprite': 2, 'beer': 1},
             },
         },

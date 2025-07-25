@@ -1,9 +1,8 @@
-## Rex's refactor of main.py
-
 import lightning
 import logging
 import numpy as np
 import random
+import re
 import sys
 import torch
 
@@ -153,6 +152,15 @@ if __name__ == '__main__':
         help = 'The training task to perform.',
     )
     parser.add_argument(
+        '-n', '--ckpt-name',
+        type = str, required = True,
+        help = """
+                Name the checkpoints that will be saved for this training.
+                Timestamps, val_loss for each epoch might be appended.
+                File extension will be appended.
+                """
+    )
+    parser.add_argument(
         '-d', '--dataset-jsonl',
         type = str,
         help = """
@@ -161,12 +169,13 @@ if __name__ == '__main__':
             """,
     )
     parser.add_argument(
-        '-n', '--ckpt-name',
-        type = str, required = True,
+        '-e', '--epochs',
+        type = str, default = '1-3',
         help = """
-            Name the checkpoints that will be saved for this training.
-            Timestamps, val_loss for each epoch might be appended.
-            File extension will be appended.
+            Number of epochs to run.
+            
+            For example, `3` means to run for exactly 3 epochs.
+            `2-5` means to run for at least 2 epochs but at most 5 epochs.
             """
     )
     parser.add_argument(
@@ -183,20 +192,7 @@ if __name__ == '__main__':
         action = 'store_false',
         help = 'Save the last epoch of training as a checkpoint.'
     )
-    parser.add_argument(
-        '--min-epochs',
-        type = int, default = 1,
-        help = 'Minimum number of epochs to train.'
-    )
-    parser.add_argument(
-        '--max-epochs',
-        type = int, default = 3,
-        help = 'Maximum number of epochs to train.'
-    )
     args = parser.parse_args()
-    
-    if args.task not in {'pr', 'mlm', 'srl'}:
-        raise Exception('Task %s has not been implemented. Aborting...' % args.task)
     
     default_data_paths = {
         'pr': 'outputs/datasets/wiki-20231101.en-pr.jsonl',
@@ -207,11 +203,24 @@ if __name__ == '__main__':
         'srl': 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt'
     }
     
+    if args.task not in default_data_paths.keys():
+        raise Exception('Task %s has not been implemented. Aborting...' % args.task)
+    
+    min_epochs, max_epochs = 0, 0
+    if re.fullmatch(r'\d+-\d+', args.epochs):
+        s = args.epochs.split('-')
+        min_epochs, max_epochs = int(s[0]), int(s[1])
+    elif re.fullmatch(r'\d+', args.epochs):
+        min_epochs = int(args.epochs)
+        max_epochs = min_epochs
+    else:
+        raise SyntaxError(f'Option -e/--epoch received invalid argument "{args.epochs}"')
+    
     run(
-        data_path = default_data_paths[args.task],
-        resume_ckpt = default_resume_ckpts.get(args.task) or args.resume_ckpt,
+        data_path = args.dataset_jsonl or default_data_paths[args.task],
+        resume_ckpt = args.resume_ckpt or default_resume_ckpts.get(args.task),
         ckpt_filename = args.ckpt_name,
         save_last_epoch = args.save_last_epoch,
-        min_epochs = args.min_epochs,
-        max_epochs = args.max_epochs,
+        min_epochs = min_epochs,
+        max_epochs = max_epochs,
     )

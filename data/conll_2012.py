@@ -52,6 +52,27 @@ class CoNLL2012(PrepData):
                 yield source, target.rstrip(' ,')
     
     @staticmethod
+    def unserialize_without_verbs(s: str) -> set[tuple[str, str]]:
+        """
+        Given a sequence, return a set of three tuples of the role-labelled words,
+        with the verb of their respective frame and the role label.
+
+        For example: the string 'eat (A: ham burger, B: chicken), drink (C: coke sprite beer sprite)' will return
+        {
+            (ham, eat, A), (burger, eat, A), (chicken, eat, B),
+            (coke, drink, C), (sprite, drink, C), (beer, drink, C),
+        }
+        """
+        out: set[tuple[str, str]] = set()
+        for verb_frame in re.finditer(r'(\S+) \((.*?\))', s.strip(' ,')):
+            for label_friends in re.finditer(r'([A-Z\-\d]+): (.*?\S)[,)]', verb_frame.group(2)):
+                label, friends = label_friends.group(1), label_friends.group(2)
+                for friend in friends.split():
+                    out.add((friend, label))
+        return out
+        
+    
+    @staticmethod
     def unserialize(s: str) -> tuple[dict[str, dict[str, dict[str, int]]], int]:
         """
         Given a sequence, divide it into verb frames,

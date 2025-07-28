@@ -631,7 +631,7 @@ def multiset_intersection(a, b):
     return total
 
 
-def srl_score(texts: list[str], outputs: list[str], targets: list[str]) -> tuple[float, float, float]:
+def srl_score(texts: list[str], outputs: list[str], targets: list[str], distinguish_verb_frames: bool) -> tuple[float, float, float]:
     """Calculate precision, recall, and F1 score for SRL task on CoNLL 2012"""
     total = min(len(texts), len(outputs), len(targets))
     logger.info('SRL eval: length %d' % total)
@@ -642,50 +642,59 @@ def srl_score(texts: list[str], outputs: list[str], targets: list[str]) -> tuple
     if total != len(targets):
         logger.warning('SRL eval: length mismatch: there are %d targets instead of %d' % (len(targets), total))
     
-    logger.debug('Evaluating. Imperfect attempts will be logged. \n')
     num_correct, num_attempted, num_gold = 0, 0, 0
-    for i in range(total):
-        text, output, target = texts[i], outputs[i], targets[i]
-        
-        output_dict, output_label_count = CoNLL2012.unserialize(output)
-        num_attempted += output_label_count
-        
-        target_dict, target_label_count = CoNLL2012.unserialize(target)
-        num_gold += target_label_count
-        
-        if output_dict == target_dict:
-            num_correct += target_label_count
-            continue
-        
-        acc, mislabeled = 0, 0
-        for verb in output_dict.keys() & target_dict.keys():
-            output_verb_frame = output_dict[verb]
-            target_verb_frame = target_dict[verb]
-            for label in output_verb_frame.keys() & target_verb_frame.keys():
-                acc += multiset_intersection(
-                    output_verb_frame[label],
-                    target_verb_frame[label],
-                )
-            for label in output_verb_frame.keys() - target_verb_frame.keys():
-                output_frame_elements = output_verb_frame[label]
-                for _, target_frame_elements in target_verb_frame.items():
-                    if output_frame_elements == target_frame_elements:
-                        # acc += len(output_frame_elements) * 2 / 3
-                        mislabeled += len(output_frame_elements)
-        print(
-            f"""
-            =============== Incorrect Output ===============
-            Text:   {text}
-            Output: {output}
-            Target: {target}
-            =============== Scoring ===============
-            {acc} with {output_label_count} attempted and {target_label_count} gold; {mislabeled} mislabeled.
+    if distinguish_verb_frames:
+        logger.debug('Evaluating. Imperfect attempts will be logged. \n')
+        for i in range(total):
+            text, output, target = texts[i], outputs[i], targets[i]
             
-            """
-        )
-        
-        num_correct += acc
-        acc, mislabeled = 0, 0
+            output_dict, output_label_count = CoNLL2012.unserialize(output)
+            num_attempted += output_label_count
+            
+            target_dict, target_label_count = CoNLL2012.unserialize(target)
+            num_gold += target_label_count
+            
+            if output_dict == target_dict:
+                num_correct += target_label_count
+                continue
+            
+            acc, mislabeled = 0, 0
+            for verb in output_dict.keys() & target_dict.keys():
+                output_verb_frame = output_dict[verb]
+                target_verb_frame = target_dict[verb]
+                for label in output_verb_frame.keys() & target_verb_frame.keys():
+                    acc += multiset_intersection(
+                        output_verb_frame[label],
+                        target_verb_frame[label],
+                    )
+                for label in output_verb_frame.keys() - target_verb_frame.keys():
+                    output_frame_elements = output_verb_frame[label]
+                    for _, target_frame_elements in target_verb_frame.items():
+                        if output_frame_elements == target_frame_elements:
+                            # acc += len(output_frame_elements) * 1 / 2 # Partial Scores
+                            mislabeled += len(output_frame_elements)
+            print(
+                f"""
+                =============== Incorrect Output ===============
+                Text:   {text}
+                Output: {output}
+                Target: {target}
+                =============== Scoring ===============
+                {acc} with {output_label_count} attempted and {target_label_count} gold; {mislabeled} mislabeled.
+                
+                """
+            )
+            num_correct += acc
+            acc, mislabeled = 0, 0
+    else:
+        for text, output, target in zip(texts, outputs, targets):
+            output_set = CoNLL2012.unserialize_without_verbs(output)
+            num_attempted += len(output_set)
+            
+            target_set = CoNLL2012.unserialize_without_verbs(target)
+            num_gold += len(target_set)
+            
+            num_correct += len(output_set & target_set)
         
     precision = num_correct / num_attempted
     recall = num_correct / num_gold
@@ -697,6 +706,7 @@ def run(
     model_name: str,
     ckpt_path: str,
     data_path: str,
+    relaxed: bool,
     max_seq_length: int = 512,
     eval_batch_size: int = 32,
     num_workers: int = 4,
@@ -744,7 +754,7 @@ def run(
         )
     
     logger.info('Evaluating SRL score.')
-    p, r, f1 = srl_score(texts, outputs, targets)
+    p, r, f1 = srl_score(texts, outputs, targets, distinguish_verb_frames = not relaxed)
     print(
         f"""
         =============== Evaluation Result ===============
@@ -780,6 +790,11 @@ if __name__ == '__main__':
         type = str, required = True,
         help = 'Name the model that will be evaluated, to be used in result printing. '
     )
+    parser.add_argument(
+        '--relaxed',
+        action = 'store_true',
+        help = 'Use a more lax metric for evaluation. '
+    )
     args = parser.parse_args()
     
     match args.task:
@@ -788,6 +803,7 @@ if __name__ == '__main__':
                 model_name = args.model_name,
                 ckpt_path = args.ckpt,
                 data_path = args.dataset_jsonl or 'outputs/datasets/conll-2012-srl-512t.jsonl',
+                relaxed = args.relaxed,
             )
         case _:
             raise Exception('Task "%s" has not been implemented. Aborting...' % args.task)

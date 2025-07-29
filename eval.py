@@ -12,6 +12,18 @@ def clean_split_alt(s:str):
     result = re.findall(".+?:[a-z]+", s) # use +? for non-greedy match
     return [k.strip() for k in result]
 
+
+
+PUNCTUATION_TO_REMOVE = {',', '.', '!', '?', "'", '"'}
+
+def normalize_text(text):
+    """Lowercase and remove specific punctuation and capitalization."""
+    text = text.lower()
+    result = ''.join(ch for ch in text if ch not in PUNCTUATION_TO_REMOVE)
+    result = re.sub('\s+', ' ', result)
+    return result
+    
+
 def text2triple(outputs, targets):
     output_list = []
     target_list = []
@@ -483,16 +495,18 @@ def pr_score(texts, outputs, targets, printer=print):
         s_tokens = [text for text in source.split(' ') if text.strip() != '']
         o_tokens = [text for text in output.split(' ') if text.strip() != '']
         t_tokens = [text for text in target.split(' ') if text.strip() != '']
-
-        # printer("source: ", source)
-        # printer("output: ", output)
-        # printer("target: ", target)
-        # printer("s_tokens: ", s_tokens)
-        # printer("o_tokens: ", o_tokens)
-        # printer("t_tokens", t_tokens)
         
 
         if len(s_tokens) != len(o_tokens) or len(s_tokens) != len(t_tokens):
+            # printer("source: ", source)
+            # printer("output: ", output)
+            # printer("target: ", target)
+            # printer("s_tokens: ", s_tokens)
+            # printer("o_tokens: ", o_tokens)
+            # printer("t_tokens", t_tokens)
+            # printer("in s not o: ", set(s_tokens).difference(set([normalize_text(word) for word in o_tokens])))
+            # printer("in o not s: ", set([normalize_text(word) for word in o_tokens]).difference(set(s_tokens)))
+            
             len_mismatch += 1
             printer(
                 f"Found length mismatch between source {len(s_tokens)}, output {len(o_tokens)}, target {len(t_tokens)}\n")
@@ -530,6 +544,7 @@ def pr_score(texts, outputs, targets, printer=print):
 
     if 0 in [attempt, hit, problem]:
         print("No good extractions have been made. Continuing training...")
+        return 0
     else:
 
         printer(f"From a corpus of {problem} problems, {attempt} attempts were made. \n"

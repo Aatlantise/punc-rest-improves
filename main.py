@@ -83,6 +83,10 @@ def load_prepped_dataset(task_name:str):
         return load_pr_dataset()
     elif task_name == "ner":
         return load_conll03_dataset()
+    elif task_name == "relation_extraction":
+        return -1
+    elif task_name == "info_extraction":
+        return -1
     else:
         print(f"invalid task name:{task_name}")
         return None
@@ -322,11 +326,14 @@ def run(
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(output_dir, "checkpoints"),
         filename="{epoch}-{val_loss:.4f}",
-        save_top_k=save_top_k,
+        # save_top_k=save_top_k,
+        save_top_k=-1, # save every 10th checkpoint
         verbose=True,
         monitor=monitor_metric,
         mode="min",
-        save_last=True
+        save_last=True,
+        every_n_epochs=10,
+        enable_version_counter=False,
     )
     
     lr_monitor = LearningRateMonitor(logging_interval='step')
@@ -380,7 +387,14 @@ def run_eval(task_name, output_dir,eval_batch_size, max_seq_length,ckpt_name="la
         object_generation_score(texts, outputs, targets)
     elif task_name == "pr":
         print("PR evaluation running: ")
-        pr_score(texts, outputs, targets)
+        # pr_score(texts, outputs, targets)
+    elif task_name == "relation_extraction":
+        return -1
+    elif task_name == "info_extraction":
+        return -1
+    else:
+        print("task name does not exist")
+        return        
     
 
 def generate(ckpt: Union[str, None], model, input_dataset, tokenizer, batch_size, max_len=256, num_beams=4, skip_special_tokens=True, shuffle=True):
@@ -417,6 +431,7 @@ if __name__ == "__main__":
     parser.add_argument("--output_dir", type=str, default="./outputs")
     parser.add_argument("--evaluate_only", action="store_true")
     parser.add_argument("--task_name", type=str, default="ner")
+    parser.add_argument("--max_epochs", type=int, default=3)
     args = parser.parse_args()
     print("inputs are: ", vars(args))
     run(**vars(args))

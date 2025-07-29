@@ -117,6 +117,6 @@ class CoNLL2012(PrepData):
         
 
 if __name__ == '__main__':
-    o = CoNLL2012.unserialize("know (ARG0: You, ARGM-NEG: n't, V: know, ARG1: that, ARGM-ADV: going into a job), going (V: going, ARG2: into a job)")
-    print(o)
+    o = CoNLL2012()
+    o.to_json('conll-2012-srl')
     

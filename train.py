@@ -197,10 +197,12 @@ if __name__ == '__main__':
     default_data_paths = {
         'pr': 'outputs/datasets/wiki-20231101.en-pr.jsonl',
         'mlm': 'outputs/datasets/wiki-20231101.en-mlm.jsonl',
-        'srl': 'outputs/datasets/conll-2012-srl-512t.jsonl'
+        'srl': 'outputs/datasets/conll-2012-srl.jsonl',
+        'pos': 'outputs/datasets/conll-2003-pos.jsonl',
     }
     default_resume_ckpts = {
-        'srl': 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt'
+        'srl': 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',
+        'pos': 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt'
     }
     
     if args.task not in default_data_paths.keys():

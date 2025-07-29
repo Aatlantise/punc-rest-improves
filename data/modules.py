@@ -24,20 +24,20 @@ class PrepData:
         """Loads dataset form hugging face"""
         self.data = load_dataset(**kwargs)
 
-    def src_tgt_pairs(self, task: str = None) -> Generator[tuple[str, str], None, None]:
+    def src_tgt_pairs(self, task: str) -> Generator[tuple[str, str], None, None]:
         """A generator function of source-target pairs as examples of training data"""
         pass
 
-    def to_json(self, filename: str = None) -> int:
+    def to_json(self, task: str, name: str = None) -> int:
         """Output data to JSONL
 
         Default path is `outputs/datasets/` with the jsonl file named after the caller class.
         """
-        filename = filename or self.__class__.__name__
-        path = 'outputs/datasets/' + filename + '.jsonl'
+        name = name or self.__class__.__name__
+        path = 'outputs/datasets/' + name + '.jsonl'
         num_lines = 0
         with open(path, 'w', encoding='utf-8') as file:
-            for source, target in self.src_tgt_pairs():
+            for source, target in self.src_tgt_pairs(task):
                 json.dump({'source': source, 'target': target}, file, ensure_ascii = False)
                 file.write('\n')
                 num_lines += 1

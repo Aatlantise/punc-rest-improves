@@ -30,7 +30,7 @@ class CoNLL2012(PrepData):
             # streaming=True, # doesn't work since have to index 'sentences'
         )
 
-    def src_tgt_pairs(self, task = 'srl'):
+    def src_tgt_pairs(self, task: str):
         if task not in ['srl']:
             raise NotImplementedError(f'Task {task} not implemented. ')
         for paragraph in self.data['sentences']:
@@ -118,5 +118,5 @@ class CoNLL2012(PrepData):
 
 if __name__ == '__main__':
     o = CoNLL2012()
-    o.to_json('conll-2012-srl')
+    o.to_json('srl', 'conll-2012-srl')
     

@@ -18,6 +18,25 @@ def normalize_text(text):
     return ''.join(ch for ch in text if ch not in PUNCTUATION_TO_REMOVE)
 
 
+def mask_text(
+    text: str,
+    p_mask: float = 0.15,
+    # p_mask_as_token: float = 0.8,
+    # p_mask_as_random_word: float = 0.1,
+) -> tuple[str, str]:
+    """Mask tokens according to parameters and return source and target strings. """
+    source_words = word_tokenize(text)
+    num_words = len(source_words)
+    target_words = []
+    mask_indices = random.sample(range(1, num_words - 1), int(num_words * p_mask))
+    for i in sorted(mask_indices):
+        sentinel = '<extra_id_%d>' % i
+        target_words.append(sentinel)
+        target_words.append(source_words[i])
+        source_words[i] = sentinel
+    return ' '.join(source_words), ' '.join(target_words)
+
+
 def remove_reference_tags(text):
     """Remove unwanted artifacts like reference tags"""
     text = re.sub(r'\[\d+\]', '', text)
@@ -45,7 +64,7 @@ def chunk_sentences(sentences, max_words = MAX_WORDS) -> list[str]:
     return chunks
 
 
-class WikiPR(PrepData):
+class Wiki2023(PrepData):
     """English Wikipedia prepped for punctuation restoration"""
 
     def __init__(self):
@@ -56,60 +75,25 @@ class WikiPR(PrepData):
             streaming=True
         )
 
-    def src_tgt_pairs(self):
+    def src_tgt_pairs(self, task):
         excerpt_count = 0
         for article in self.data:
             text = article.get("text", "")
             if not text or len(text) < 200:
                 continue
+                
             text = remove_reference_tags(text)
             text = sent_tokenize(text)
             for chunk in chunk_sentences(text, max_words = MAX_WORDS):
                 target = chunk.strip()
-                yield normalize_text(target), target
-                excerpt_count += 1
-                if excerpt_count >= MAX_EXCERPTS:
-                    return
                 
-
-def mask_text(
-    text: str,
-    p_mask: float = 0.15,
-    # p_mask_as_token: float = 0.8,
-    # p_mask_as_random_word: float = 0.1,
-) -> tuple[str, str]:
-    """Mask tokens according to parameters and return source and target strings. """
-    source_words = word_tokenize(text)
-    num_words = len(source_words)
-    target_words = []
-    mask_indices = random.sample(range(1, num_words - 1), int(num_words * p_mask))
-    for i in sorted(mask_indices):
-        sentinel = '<extra_id_%d>' % i
-        target_words.append(sentinel)
-        target_words.append(source_words[i])
-        source_words[i] = sentinel
-    return ' '.join(source_words), ' '.join(target_words)
-
-class WikiMLM(PrepData):
-    
-    def __init__(self):
-        super().__init__(
-            path='wikimedia/wikipedia',
-            name='20231101.en',
-            split='train',
-            streaming=True
-        )
-        
-    def src_tgt_pairs(self):
-        excerpt_count = 0
-        for article in self.data:
-            text = article.get("text", "")
-            if not text or len(text) < 200:
-                continue
-            text = remove_reference_tags(text)
-            text = sent_tokenize(text)
-            for chunk in chunk_sentences(text, max_words = MAX_WORDS):
-                yield mask_text(chunk.strip())
+                if task == 'pr':
+                    yield normalize_text(target), target
+                elif task == 'mlm':
+                    yield mask_text(chunk.strip())
+                else:
+                    raise NotImplementedError(f'Task {task} not implemented. ')
+                
                 excerpt_count += 1
                 if excerpt_count >= MAX_EXCERPTS:
                     return
@@ -119,5 +103,5 @@ if __name__ == "__main__":
     nltk.download('punkt')
     nltk.download('punkt_tab')
     random.seed(42)
-    ds = WikiMLM()
-    ds.to_json('wiki-20231101.en-mlm')
+    ds = Wiki2023()
+    ds.to_json('mlm', 'wiki-20231101.en-mlm')

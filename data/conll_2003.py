@@ -1,5 +1,4 @@
 import logging
-import re
 import sys
 
 from data.modules import PrepData
@@ -12,6 +11,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 class CoNLL2003(PrepData):
 
     def __init__(self, split = 'train'):
@@ -19,7 +19,7 @@ class CoNLL2003(PrepData):
         super().__init__(
             path = 'lhoestq/conll2003',
             split = split,
-            # streaming=True, # doesn't work since have to index 'sentences'
+            streaming = True,
         )
     
     @staticmethod
@@ -32,21 +32,16 @@ class CoNLL2003(PrepData):
          ]
          return pos_tags[i]
 
-    def src_tgt_pairs(self, task = 'pos'):
+    def src_tgt_pairs(self, task: str):
         if task not in ['pos']:
             raise NotImplementedError(f'Task {task} not implemented. ')
         for example in self.data:
             tokens, tags = example['tokens'], example['pos_tags']
             source = ' '.join(tokens)
-            target = ''
-            for token, tag in zip(tokens, tags):
-                if tag < 10:
-                    target += token + ' '
-                else:
-                    target += token + '-' + self.id_to_pos_tag(tag) + ' '
-            yield source, target.rstrip(' ')
+            target = ' '.join(map(self.id_to_pos_tag, tags))
+            yield source, target
 
 if __name__ == '__main__':
     o = CoNLL2003()
-    o.to_json('conll-2003-pos')
+    o.to_json('pos', 'conll-2003-pos')
     

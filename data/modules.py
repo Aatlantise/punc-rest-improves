@@ -24,7 +24,7 @@ class PrepData:
         """Loads dataset form hugging face"""
         self.data = load_dataset(**kwargs)
 
-    def src_tgt_pairs(self) -> Generator[tuple[str, str], None, None]:
+    def src_tgt_pairs(self, task: str = None) -> Generator[tuple[str, str], None, None]:
         """A generator function of source-target pairs as examples of training data"""
         pass
 

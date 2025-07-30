@@ -14,13 +14,14 @@ logger = logging.getLogger(__name__)
 
 class OIE2016(PrepData):
 
-    def __init__(self, oie_path: str, split = 'train'):
+    def __init__(self, repo_path: str):
         """Loads dataset from generated OpenIE corpus
         
-        Refer to https://github.com/gabrielStanovsky/oie-benchmark
+        Refer to https://github.com/gabrielStanovsky/oie-benchmark.
+        Need to run a script from the repo to convert QA-SRL data into OpenIE
         """
         super().__init__(hf_dataset = False)
-        with open(oie_path, 'r') as file:
+        with open(f'{repo_path}/oie_corpus/all.oie', 'r') as file:
             for line in file:
                 self.data.append(line)
 
@@ -41,6 +42,6 @@ class OIE2016(PrepData):
                 
 
 if __name__ == '__main__':
-    o = OIE2016(oie_path = './all.oie')
+    o = OIE2016(repo_path = sys.argv[1])
     o.to_json('oie', 'oie-2016')
     

@@ -1,17 +1,11 @@
 import json
-import logging
-import sys
 
 from datasets import load_dataset, Dataset
 from torch.utils.data import DataLoader
 from typing import Generator
+from utils import logger
 
-logging.basicConfig(
-    format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level = logging.DEBUG,
-    stream = sys.stdout,
-)
-logger = logging.getLogger('data/modules')
+logger = logger()
 
 
 class PrepData:

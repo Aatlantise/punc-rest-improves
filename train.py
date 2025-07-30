@@ -1,9 +1,7 @@
 import lightning
-import logging
 import numpy as np
 import random
 import re
-import sys
 import torch
 
 from argparse import ArgumentParser
@@ -14,13 +12,9 @@ from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
 from models.t5 import PRT5
 from os.path import join as join_paths
+from utils import logger
 
-logging.basicConfig(
-    format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level = logging.DEBUG,
-    stream = sys.stdout,
-)
-logger = logging.getLogger(__name__)
+logger = logger()
 torch.autograd.set_detect_anomaly(True)
 
 

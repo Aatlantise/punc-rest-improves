@@ -1,15 +1,9 @@
-import logging
 import sys
 
 from data.modules import PrepData
+from utils import logger
 
-
-logging.basicConfig(
-    format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level = logging.DEBUG,
-    stream = sys.stdout
-)
-logger = logging.getLogger(__name__)
+logger = logger()
 
 
 class CaRB(PrepData):

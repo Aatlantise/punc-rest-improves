@@ -1,22 +1,15 @@
 import json
-import logging
 import os
-import sys
 
 from argparse import ArgumentParser
 from data.modules import TrainData
-from data.conll_2012 import CoNLL2012
 from torch.utils.data import DataLoader
 from train import PRT5
 from tqdm import tqdm
 from typing import List, Dict, Union
+from utils import logger
 
-logging.basicConfig(
-    format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level = logging.DEBUG,
-    stream = sys.stdout
-)
-logger = logging.getLogger(__name__)
+logger = logger()
 
 def clean_split(s: str) -> List[str]:
     return [k.strip(' ') for k in s.strip(' ').strip(')').strip('(').strip(' ').split(') (')]
@@ -623,85 +616,6 @@ def sbd_score(texts, outputs, targets, printer=print):
         return macro_f1
 
 
-def multiset_intersection(a, b):
-    """The key types should be hashable of course, and the values numerics"""
-    total = 0
-    for key in a.keys() & b.keys():
-        total += min(a[key], b[key])
-    return total
-
-
-def srl_score(texts: list[str], outputs: list[str], targets: list[str], distinguish_verb_frames: bool) -> tuple[float, float, float]:
-    """Calculate precision, recall, and F1 score for SRL task on CoNLL 2012"""
-    total = min(len(texts), len(outputs), len(targets))
-    logger.info('SRL eval: length %d' % total)
-    if total != len(texts):
-        logger.warning('SRL eval: length mismatch: there are %d texts instead of %d' % (len(texts), total))
-    if total != len(outputs):
-        logger.warning('SRL eval: length mismatch: there are %d outputs instead of %d' % (len(outputs), total))
-    if total != len(targets):
-        logger.warning('SRL eval: length mismatch: there are %d targets instead of %d' % (len(targets), total))
-    
-    num_correct, num_attempted, num_gold = 0, 0, 0
-    if distinguish_verb_frames:
-        logger.debug('Evaluating. Imperfect attempts will be logged. \n')
-        for i in range(total):
-            text, output, target = texts[i], outputs[i], targets[i]
-            
-            output_dict, output_label_count = CoNLL2012.unserialize(output)
-            num_attempted += output_label_count
-            
-            target_dict, target_label_count = CoNLL2012.unserialize(target)
-            num_gold += target_label_count
-            
-            if output_dict == target_dict:
-                num_correct += target_label_count
-                continue
-            
-            acc, mislabeled = 0, 0
-            for verb in output_dict.keys() & target_dict.keys():
-                output_verb_frame = output_dict[verb]
-                target_verb_frame = target_dict[verb]
-                for label in output_verb_frame.keys() & target_verb_frame.keys():
-                    acc += multiset_intersection(
-                        output_verb_frame[label],
-                        target_verb_frame[label],
-                    )
-                for label in output_verb_frame.keys() - target_verb_frame.keys():
-                    output_frame_elements = output_verb_frame[label]
-                    for _, target_frame_elements in target_verb_frame.items():
-                        if output_frame_elements == target_frame_elements:
-                            # acc += len(output_frame_elements) * 1 / 2 # Partial Scores
-                            mislabeled += len(output_frame_elements)
-            print(
-                f"""
-                =============== Incorrect Output ===============
-                Text:   {text}
-                Output: {output}
-                Target: {target}
-                =============== Scoring ===============
-                {acc} with {output_label_count} attempted and {target_label_count} gold; {mislabeled} mislabeled.
-                
-                """
-            )
-            num_correct += acc
-            acc, mislabeled = 0, 0
-    else:
-        for text, output, target in zip(texts, outputs, targets):
-            output_set = CoNLL2012.unserialize_without_verbs(output)
-            num_attempted += len(output_set)
-            
-            target_set = CoNLL2012.unserialize_without_verbs(target)
-            num_gold += len(target_set)
-            
-            num_correct += len(output_set & target_set)
-        
-    precision = num_correct / num_attempted
-    recall = num_correct / num_gold
-    f1 = 2 * precision * recall / (precision + recall)
-    return precision, recall, f1
-
-
 def run(
     model_name: str,
     ckpt_path: str,
@@ -754,7 +668,8 @@ def run(
         )
     
     logger.info('Evaluating SRL score.')
-    p, r, f1 = srl_score(texts, outputs, targets, distinguish_verb_frames = not relaxed)
+    from tasks.srl import score
+    p, r, f1 = score(texts, outputs, targets, distinguish_verb_frames = not relaxed)
     print(
         f"""
         =============== Evaluation Result ===============

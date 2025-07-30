@@ -1,8 +1,4 @@
 .idea/*
 eval/*
 docker/*
-**/*.jsonl
-__pycache__
-logs
-outputs
-slurm
+*.sh

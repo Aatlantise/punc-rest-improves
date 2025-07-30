@@ -1,5 +1,5 @@
 transformers
-pytorch_lightning
+lightning
 sentencepiece
 datasets
 seqeval
@@ -7,3 +7,6 @@ nltk
 torch
 numpy
 tqdm
+tensorboard
+transformer_engine
+scikit-learn

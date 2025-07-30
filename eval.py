@@ -1,16 +1,25 @@
+import json
+import logging
+import os
+import sys
+
+from argparse import ArgumentParser
+from data.modules import TrainData
+from data.conll_2012 import CoNLL2012
+from torch.utils.data import DataLoader
+from train import PRT5
 from tqdm import tqdm
-from torch.utils.data import Dataset, DataLoader
 from typing import List, Dict, Union
-import re
 
-def clean_split(s: str) -> list[str]:
+logging.basicConfig(
+    format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level = logging.DEBUG,
+    stream = sys.stdout
+)
+logger = logging.getLogger(__name__)
+
+def clean_split(s: str) -> List[str]:
     return [k.strip(' ') for k in s.strip(' ').strip(')').strip('(').strip(' ').split(') (')]
-
-# If jsonl data is formatted as "word:label"
-def clean_split_alt(s:str):
-    # return [k.strip(' ') for k in s.strip(' ').strip(')').strip('(').strip(' ').split(') (')]
-    result = re.findall(".+?:[a-z]+", s) # use +? for non-greedy match
-    return [k.strip() for k in result]
 
 def text2triple(outputs, targets):
     output_list = []
@@ -113,10 +122,6 @@ def object_generation_score(texts, outputs, targets, printer=print):
         g = clean_split(t.lower())
         attempts += len(a)
         total_gold += len(g)
-
-        # printer("input: ", sent)
-        # printer("predicted labels: ", a)
-        # printer("gold labels: ", g)
 
         # use exact match
         correct += len([k for k in a if k in g])
@@ -480,24 +485,15 @@ def pr_score(texts, outputs, targets, printer=print):
     len_mismatch = 0
     for source, output, target in zip(texts, outputs, targets):
         # s_tokens = source[32:].split(' ')  # prompt is 32 chars long
-        s_tokens = [text for text in source.split(' ') if text.strip() != '']
-        o_tokens = [text for text in output.split(' ') if text.strip() != '']
-        t_tokens = [text for text in target.split(' ') if text.strip() != '']
-
-        # printer("source: ", source)
-        # printer("output: ", output)
-        # printer("target: ", target)
-        # printer("s_tokens: ", s_tokens)
-        # printer("o_tokens: ", o_tokens)
-        # printer("t_tokens", t_tokens)
-        
+        s_tokens = source.split(' ')
+        o_tokens = output.split(' ')
+        t_tokens = target.split(' ')
 
         if len(s_tokens) != len(o_tokens) or len(s_tokens) != len(t_tokens):
             len_mismatch += 1
-            printer(
-                f"Found length mismatch between source {len(s_tokens)}, output {len(o_tokens)}, target {len(t_tokens)}\n")
-            printer("Skipping...")
-        
+            # printer(
+            #     f"Found length mismatch between source {len(s_tokens)}, output {len(o_tokens)}, target {len(t_tokens)}\n")
+            # printer("Skipping...")
             min_len = min([len(s_tokens), len(o_tokens), len(t_tokens)])
             s_tokens = s_tokens[:min_len]
             o_tokens = o_tokens[:min_len]
@@ -625,4 +621,189 @@ def sbd_score(texts, outputs, targets, printer=print):
                 f"| End|{'%.3f' % e_p}|{'%.3f' % e_r}|{'%.3f' % e_f1}|\n"
                 f"|Macr|{'%.3f' % macro_p}|{'%.3f' % macro_r}|{'%.3f' % macro_f1}|\n")
         return macro_f1
+
+
+def multiset_intersection(a, b):
+    """The key types should be hashable of course, and the values numerics"""
+    total = 0
+    for key in a.keys() & b.keys():
+        total += min(a[key], b[key])
+    return total
+
+
+def srl_score(texts: list[str], outputs: list[str], targets: list[str], distinguish_verb_frames: bool) -> tuple[float, float, float]:
+    """Calculate precision, recall, and F1 score for SRL task on CoNLL 2012"""
+    total = min(len(texts), len(outputs), len(targets))
+    logger.info('SRL eval: length %d' % total)
+    if total != len(texts):
+        logger.warning('SRL eval: length mismatch: there are %d texts instead of %d' % (len(texts), total))
+    if total != len(outputs):
+        logger.warning('SRL eval: length mismatch: there are %d outputs instead of %d' % (len(outputs), total))
+    if total != len(targets):
+        logger.warning('SRL eval: length mismatch: there are %d targets instead of %d' % (len(targets), total))
     
+    num_correct, num_attempted, num_gold = 0, 0, 0
+    if distinguish_verb_frames:
+        logger.debug('Evaluating. Imperfect attempts will be logged. \n')
+        for i in range(total):
+            text, output, target = texts[i], outputs[i], targets[i]
+            
+            output_dict, output_label_count = CoNLL2012.unserialize(output)
+            num_attempted += output_label_count
+            
+            target_dict, target_label_count = CoNLL2012.unserialize(target)
+            num_gold += target_label_count
+            
+            if output_dict == target_dict:
+                num_correct += target_label_count
+                continue
+            
+            acc, mislabeled = 0, 0
+            for verb in output_dict.keys() & target_dict.keys():
+                output_verb_frame = output_dict[verb]
+                target_verb_frame = target_dict[verb]
+                for label in output_verb_frame.keys() & target_verb_frame.keys():
+                    acc += multiset_intersection(
+                        output_verb_frame[label],
+                        target_verb_frame[label],
+                    )
+                for label in output_verb_frame.keys() - target_verb_frame.keys():
+                    output_frame_elements = output_verb_frame[label]
+                    for _, target_frame_elements in target_verb_frame.items():
+                        if output_frame_elements == target_frame_elements:
+                            # acc += len(output_frame_elements) * 1 / 2 # Partial Scores
+                            mislabeled += len(output_frame_elements)
+            print(
+                f"""
+                =============== Incorrect Output ===============
+                Text:   {text}
+                Output: {output}
+                Target: {target}
+                =============== Scoring ===============
+                {acc} with {output_label_count} attempted and {target_label_count} gold; {mislabeled} mislabeled.
+                
+                """
+            )
+            num_correct += acc
+            acc, mislabeled = 0, 0
+    else:
+        for text, output, target in zip(texts, outputs, targets):
+            output_set = CoNLL2012.unserialize_without_verbs(output)
+            num_attempted += len(output_set)
+            
+            target_set = CoNLL2012.unserialize_without_verbs(target)
+            num_gold += len(target_set)
+            
+            num_correct += len(output_set & target_set)
+        
+    precision = num_correct / num_attempted
+    recall = num_correct / num_gold
+    f1 = 2 * precision * recall / (precision + recall)
+    return precision, recall, f1
+
+
+def run(
+    model_name: str,
+    ckpt_path: str,
+    data_path: str,
+    relaxed: bool,
+    max_seq_length: int = 512,
+    eval_batch_size: int = 32,
+    num_workers: int = 4,
+):
+    path = 'outputs/generated/%s.jsonl' % model_name.split(' ', 1)[0]
+    texts, outputs, targets = [], [], []
+    if os.path.isfile(path):
+        logger.info('Restoring outputs from %s.' % path)
+        with open(path, 'r') as f:
+            for line in f:
+                obj = json.loads(line)
+                texts.append(obj['text'])
+                outputs.append(obj['output'])
+                targets.append(obj['target'])
+    else:
+        logger.info(f'Loading model {model_name} from checkpoint {ckpt_path}')
+        model = PRT5.load_from_checkpoint(ckpt_path)
+        logger.info(f'Loading dataset from path {data_path}')
+        ds = TrainData(data_path)
+        logger.info('Initializing dataloader. ')
+        dl = ds.loader(
+            split = 'test',
+            tokenizer = model.tokenizer,
+            max_seq_length = max_seq_length,
+            eval_batch_size = eval_batch_size,
+            num_workers = num_workers,
+        )
+        logger.info('Generating outputs.')
+        texts, outputs, targets = model.generate(dl)
+        logger.info('Backing up outputs to %s.' % path)
+        for text, output, target in zip(texts, outputs, targets):
+            with open(path, 'w') as f:
+                json.dump({'text': text, 'output': output, 'target': target}, f, ensure_ascii = False)
+                f.write('\n')
+    
+    logger.info('Printing generated samples.')
+    for i in range(5):
+        print(
+            f"""
+            =============== Generated Output #{i} ===============
+            Text: {texts[i]},
+            Output: {outputs[i]},
+            Target: {targets[i]},
+            """
+        )
+    
+    logger.info('Evaluating SRL score.')
+    p, r, f1 = srl_score(texts, outputs, targets, distinguish_verb_frames = not relaxed)
+    print(
+        f"""
+        =============== Evaluation Result ===============
+        Precision: {p},
+        Recall: {r},
+        F1: {f1},
+        """
+    )
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument(
+        'task',
+        type = str,
+        help = 'The evaluation to perform.',
+    )
+    parser.add_argument(
+        '-c', '--ckpt',
+        type = str, required = True,
+        help = 'Path to the checkpoint to be evaluated. '
+    )
+    parser.add_argument(
+        '-d', '--dataset-jsonl',
+        type = str,
+        help = """
+            A jsonl file containing evaluating data.
+            If left unprovided, a corresponding default jsonl will be used.
+            """,
+    )
+    parser.add_argument(
+        '-n', '--model-name',
+        type = str, required = True,
+        help = 'Name the model that will be evaluated, to be used in result printing. '
+    )
+    parser.add_argument(
+        '--relaxed',
+        action = 'store_true',
+        help = 'Use a more lax metric for evaluation. '
+    )
+    args = parser.parse_args()
+    
+    match args.task:
+        case 'srl':
+            run(
+                model_name = args.model_name,
+                ckpt_path = args.ckpt,
+                data_path = args.dataset_jsonl or 'outputs/datasets/conll-2012-srl-512t.jsonl',
+                relaxed = args.relaxed,
+            )
+        case _:
+            raise Exception('Task "%s" has not been implemented. Aborting...' % args.task)

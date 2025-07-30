@@ -43,5 +43,5 @@ class OIE2016(PrepData):
 
 if __name__ == '__main__':
     o = OIE2016(repo_path = sys.argv[1])
-    o.to_json('oie', 'oie-2016')
+    o.to_json('oie', 'oie-2016-oie')
     

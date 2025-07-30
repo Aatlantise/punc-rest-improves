@@ -199,6 +199,7 @@ if __name__ == '__main__':
         'mlm': 'outputs/datasets/wiki-20231101.en-mlm.jsonl',
         'srl': 'outputs/datasets/conll-2012-srl.jsonl',
         'pos': 'outputs/datasets/conll-2003-pos.jsonl',
+        'oie': 'outputs/datasets/oie-2016-oie.jsonl',
     }
     default_resume_ckpts = {
         'srl': 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',

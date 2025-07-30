@@ -45,5 +45,5 @@ class CaRB(PrepData):
 
 if __name__ == '__main__':
     o = CaRB(repo_path = sys.argv[1])
-    o.to_json('oie', 'carb')
+    o.to_json('oie', 'carb-oie')
     

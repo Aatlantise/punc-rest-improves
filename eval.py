@@ -628,6 +628,15 @@ def run(
 ):
     print(f"=============== Model {model_name} Evaluation ===============")
     path = 'outputs/generated/%s.jsonl' % model_name.split(' ', 1)[0]
+    
+    default_data_paths = {
+        'pr': 'outputs/datasets/wiki-20231101.en-pr.jsonl',
+        'mlm': 'outputs/datasets/wiki-20231101.en-mlm.jsonl',
+        'srl': 'outputs/datasets/conll-2012-srl.jsonl',
+        'pos': 'outputs/datasets/conll-2003-pos.jsonl',
+        'oie': 'outputs/datasets/oie-2016-oie.jsonl',
+    }
+    
     texts, outputs, targets = [], [], []
     if os.path.isfile(path):
         logger.info('Restoring outputs from %s.' % path)
@@ -638,6 +647,7 @@ def run(
                 outputs.append(obj['output'])
                 targets.append(obj['target'])
     else:
+        ckpt_path = ckpt_path or default_data_paths[task]
         logger.info(f'Loading model {model_name} from checkpoint {ckpt_path}')
         model = PRT5.load_from_checkpoint(ckpt_path)
         logger.info(f'Loading dataset from path {data_path}')

@@ -617,14 +617,16 @@ def sbd_score(texts, outputs, targets, printer=print):
 
 
 def run(
+    task: str,
     model_name: str,
     ckpt_path: str,
     data_path: str,
-    relaxed: bool,
     max_seq_length: int = 512,
     eval_batch_size: int = 32,
     num_workers: int = 4,
+    strict: bool = True,
 ):
+    print(f"=============== Model {model_name} Evaluation ===============")
     path = 'outputs/generated/%s.jsonl' % model_name.split(' ', 1)[0]
     texts, outputs, targets = [], [], []
     if os.path.isfile(path):
@@ -667,9 +669,17 @@ def run(
             """
         )
     
-    logger.info('Evaluating SRL score.')
-    from tasks.srl import score
-    p, r, f1 = score(texts, outputs, targets, distinguish_verb_frames = not relaxed)
+    logger.info(f'Evaluating {task} score.')
+    match task:
+        case 'srl':
+            from tasks.srl import score
+        case 'pos':
+            from tasks.pos import score
+        case 'oie':
+            from tasks.oie import score
+        case _:
+            raise NotImplementedError(task)
+    p, r, f1 = score(texts, outputs, targets, strict = strict)
     print(
         f"""
         =============== Evaluation Result ===============
@@ -706,19 +716,16 @@ if __name__ == '__main__':
         help = 'Name the model that will be evaluated, to be used in result printing. '
     )
     parser.add_argument(
-        '--relaxed',
+        '--strict',
         action = 'store_true',
-        help = 'Use a more lax metric for evaluation. '
+        help = 'Use a stricter metric for evaluation. See implementation detail for each task.'
     )
     args = parser.parse_args()
     
-    match args.task:
-        case 'srl':
-            run(
-                model_name = args.model_name,
-                ckpt_path = args.ckpt,
-                data_path = args.dataset_jsonl or 'outputs/datasets/conll-2012-srl-512t.jsonl',
-                relaxed = args.relaxed,
-            )
-        case _:
-            raise Exception('Task "%s" has not been implemented. Aborting...' % args.task)
+    run(
+        task = args.task,
+        model_name = args.model_name,
+        ckpt_path = args.ckpt,
+        data_path = args.dataset_jsonl,
+        strict = args.strict,
+    )

@@ -56,7 +56,7 @@ def unserialize(example: str) -> dict[str, dict[str, set[str]]]:
     return out
 
 
-def score(texts: list[str], outputs: list[str], targets: list[str]) -> tuple[float, float, float]:
+def score(texts: list[str], outputs: list[str], targets: list[str], strict = True) -> tuple[float, float, float]:
     """Score OIE by matching"""
     num_correct, num_attempted, num_gold = 0, 0, 0
     for text, output, target in zip(texts, outputs, targets):

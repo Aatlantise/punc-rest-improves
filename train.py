@@ -28,7 +28,7 @@ def set_seed(seed: int):
         torch.cuda.manual_seed_all(seed)
         
 class IndividualCheckpoints(Callback):
-    def __init__(self, epochs_to_save_at: set[int], save_dir: str = 'outputs/checkpoints', name: str = 'mlm'):
+    def __init__(self, epochs_to_save_at: list[int], save_dir: str = 'outputs/checkpoints', name: str = 'indiv-ckpt'):
         super().__init__()
         self.epochs_to_save_at = epochs_to_save_at
         self.save_dir = save_dir
@@ -45,6 +45,7 @@ class IndividualCheckpoints(Callback):
 def run(
     ckpt_filename: str,
     data_path: str,
+    epochs_to_save: list[int],
     save_last_epoch: bool,
     min_epochs: int,
     max_epochs: int,
@@ -105,7 +106,7 @@ def run(
                 mode = 'min',
             ),
             LearningRateMonitor(logging_interval = 'step'),
-            IndividualCheckpoints(epochs_to_save_at = {0, 9}), # Save 1st and 10th epochs
+            IndividualCheckpoints(epochs_to_save_at = epochs_to_save, name = ckpt_filename), # Save 1st and 10th epochs
         ],
         precision = precision,
         accelerator = accelerator,
@@ -173,6 +174,16 @@ if __name__ == '__main__':
             """
     )
     parser.add_argument(
+        '-s', '--epoch-to-save',
+        action = 'append', type = int,
+        help = """
+            An epoch index (STARTS AT 0) to save. Can be provided multiple times.
+
+            For example, `-s 3` will save the fourth epoch.
+            `-s 2 -s 5` will save the third and sixth epochs.
+            """
+    )
+    parser.add_argument(
         '-r', '--resume-ckpt',
         type = str,
         help = """
@@ -186,6 +197,11 @@ if __name__ == '__main__':
         action = 'store_true',
         help = 'Save the last epoch of training as a checkpoint.'
     )
+    parser.add_argument(
+        '-k', '--save-top-k',
+        type = int, default = '1',
+        help = 'Save the top k checkpoints with lowest validation loss.'
+    )
     args = parser.parse_args()
     
     default_data_paths = {
@@ -195,13 +211,10 @@ if __name__ == '__main__':
         'pos': 'outputs/datasets/conll-2003-pos.jsonl',
         'oie': 'outputs/datasets/oie-2016-oie.jsonl',
     }
-    default_resume_ckpts = {
-        'srl': 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt',
-        'pos': 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt'
-    }
+    default_pr_ckpt = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt'
     
     if args.task not in default_data_paths.keys():
-        raise Exception('Task %s has not been implemented. Aborting...' % args.task)
+        raise NotImplementedError(args.task)
     
     min_epochs, max_epochs = 0, 0
     if re.fullmatch(r'\d+-\d+', args.epochs):
@@ -213,11 +226,21 @@ if __name__ == '__main__':
     else:
         raise SyntaxError(f'Option -e/--epoch received invalid argument "{args.epochs}"')
     
+    logger.debug(f"Data path is {args.dataset_jsonl or default_data_paths[args.task]}")
+    logger.debug(f"Resuming checkpoint from {args.resume_ckpt or default_pr_ckpt if args.task not in ['pr', 'mlm'] else None}")
+    logger.debug(f"Checkpoints will be named with prefix {args.ckpt_name}")
+    logger.debug(f"Saving epochs {args.epoch_to_save}")
+    logger.debug(f"Saving top {args.save_top_k} epochs")
+    logger.debug(f"Whether to save last epoch: {args.save_last_epoch}")
+    logger.debug(f"Epochs to run: min {min_epochs}, max {max_epochs}")
+    
     run(
         data_path = args.dataset_jsonl or default_data_paths[args.task],
-        resume_ckpt = args.resume_ckpt or default_resume_ckpts.get(args.task),
+        resume_ckpt = args.resume_ckpt or default_pr_ckpt if args.task not in ['pr', 'mlm'] else None,
         ckpt_filename = args.ckpt_name,
+        epochs_to_save = args.epoch_to_save,
         save_last_epoch = args.save_last_epoch,
         min_epochs = min_epochs,
         max_epochs = max_epochs,
+        save_top_k = args.save_top_k,
     )

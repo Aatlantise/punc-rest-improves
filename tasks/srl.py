@@ -66,13 +66,13 @@ def seq_to_struct(s: str) -> tuple[dict[str, dict[str, dict[str, int]]], int]:
     return out, total_labels
 
 
-def score(texts: list[str], outputs: list[str], targets: list[str], distinguish_verb_frames: bool) \
+def score(texts: list[str], outputs: list[str], targets: list[str], strict: bool = False) \
     -> tuple[float, float, float]:
     """Calculate precision, recall, and F1 score for SRL task on CoNLL 2012"""
     num_correct, num_attempted, num_gold = 0, 0, 0
     logger.debug('Evaluating. Imperfect attempts will be logged. \n')
     for text, output, target in zip(texts, outputs, targets):
-        if distinguish_verb_frames:
+        if strict:
             output_dict, output_label_count = seq_to_struct(output)
             num_attempted += output_label_count
             

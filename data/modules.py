@@ -31,7 +31,7 @@ class PrepData:
 
         Default path is `outputs/datasets/` with the jsonl file named after the caller class.
         """
-        name = name or self.__class__.__name__
+        name = name or self.__class__.__name__ + '-' + task
         path = 'outputs/datasets/' + name + '.jsonl'
         num_lines = 0
         with open(path, 'w', encoding='utf-8') as file:

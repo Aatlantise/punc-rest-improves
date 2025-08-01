@@ -626,7 +626,7 @@ def run(
     num_workers: int = 4,
     strict: bool = True,
 ):
-    print(f"=============== Model {model_name} Evaluation ===============")
+    print(f"=============== Model {model_name} {task} Evaluation ===============")
     path = 'outputs/generated/%s.jsonl' % model_name.split(' ', 1)[0]
     
     default_data_paths = {
@@ -647,11 +647,13 @@ def run(
                 outputs.append(obj['output'])
                 targets.append(obj['target'])
     else:
-        ckpt_path = ckpt_path or default_data_paths[task]
         logger.info(f'Loading model {model_name} from checkpoint {ckpt_path}')
         model = PRT5.load_from_checkpoint(ckpt_path)
+        
         logger.info(f'Loading dataset from path {data_path}')
+        data_path = data_path or default_data_paths[task]
         ds = TrainData(data_path)
+        
         logger.info('Initializing dataloader. ')
         dl = ds.loader(
             split = 'test',
@@ -669,13 +671,13 @@ def run(
                 f.write('\n')
     
     logger.info('Printing generated samples.')
-    for i in range(5):
+    for i in range(min(len(texts), 20)):
         print(
             f"""
             =============== Generated Output #{i} ===============
-            Text: {texts[i]},
-            Output: {outputs[i]},
-            Target: {targets[i]},
+            Text: {texts[i]}
+            Output: {outputs[i]}
+            Target: {targets[i]}
             """
         )
     

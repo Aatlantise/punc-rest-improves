@@ -30,7 +30,7 @@ def set_seed(seed: int):
 class IndividualCheckpoints(Callback):
     def __init__(self, epochs_to_save_at: list[int], save_dir: str = 'outputs/checkpoints', name: str = 'indiv-ckpt'):
         super().__init__()
-        self.epochs_to_save_at = epochs_to_save_at
+        self.epochs_to_save_at = epochs_to_save_at or []
         self.save_dir = save_dir
         self.name = name
 

@@ -183,7 +183,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--save-last-epoch',
-        action = 'store_false',
+        action = 'store_true',
         help = 'Save the last epoch of training as a checkpoint.'
     )
     args = parser.parse_args()

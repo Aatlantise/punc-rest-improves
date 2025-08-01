@@ -150,10 +150,10 @@ if __name__ == '__main__':
         '-n', '--ckpt-name',
         type = str, required = True,
         help = """
-                Name the checkpoints that will be saved for this training.
-                Timestamps, val_loss for each epoch might be appended.
-                File extension will be appended.
-                """
+            Name the checkpoints that will be saved for this training.
+            Timestamps, val_loss for each epoch might be appended.
+            File extension will be appended.
+            """
     )
     parser.add_argument(
         '-d', '--dataset-jsonl',
@@ -165,7 +165,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '-e', '--epochs',
-        type = str, default = '1-3',
+        type = str, default = '3',
         help = """
             Number of epochs to run.
             
@@ -213,7 +213,7 @@ if __name__ == '__main__':
     }
     default_pr_ckpt = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt'
     
-    if args.task not in default_data_paths.keys():
+    if not args.dataset_jsonl and args.task not in default_data_paths.keys():
         raise NotImplementedError(args.task)
     
     min_epochs, max_epochs = 0, 0

@@ -69,21 +69,10 @@ def seq_to_struct(s: str) -> tuple[dict[str, dict[str, dict[str, int]]], int]:
 def score(texts: list[str], outputs: list[str], targets: list[str], distinguish_verb_frames: bool) \
     -> tuple[float, float, float]:
     """Calculate precision, recall, and F1 score for SRL task on CoNLL 2012"""
-    total = min(len(texts), len(outputs), len(targets))
-    logger.info('SRL eval: length %d' % total)
-    if total != len(texts):
-        logger.warning('SRL eval: length mismatch: there are %d texts instead of %d' % (len(texts), total))
-    if total != len(outputs):
-        logger.warning('SRL eval: length mismatch: there are %d outputs instead of %d' % (len(outputs), total))
-    if total != len(targets):
-        logger.warning('SRL eval: length mismatch: there are %d targets instead of %d' % (len(targets), total))
-    
     num_correct, num_attempted, num_gold = 0, 0, 0
-    if distinguish_verb_frames:
-        logger.debug('Evaluating. Imperfect attempts will be logged. \n')
-        for i in range(total):
-            text, output, target = texts[i], outputs[i], targets[i]
-            
+    logger.debug('Evaluating. Imperfect attempts will be logged. \n')
+    for text, output, target in zip(texts, outputs, targets):
+        if distinguish_verb_frames:
             output_dict, output_label_count = seq_to_struct(output)
             num_attempted += output_label_count
             
@@ -122,8 +111,7 @@ def score(texts: list[str], outputs: list[str], targets: list[str], distinguish_
             )
             num_correct += acc
             acc, mislabeled = 0, 0
-    else:
-        for text, output, target in zip(texts, outputs, targets):
+        else:
             output_set = seq_to_struct_lax(output)
             num_attempted += len(output_set)
             

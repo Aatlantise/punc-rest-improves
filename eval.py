@@ -667,11 +667,11 @@ def run(
         texts, outputs, targets = model.generate(dl)
         
         logger.info('Backing up outputs to %s.' % path)
-        for i in range(len(texts)):
-            text = texts[i]
-            output = outputs[i] if i < len(outputs) else None
-            target = targets[i] if i < len(targets) else None
-            with open(path, 'w') as f:
+        with open(path, 'w') as f:
+            for i in range(len(texts)):
+                text = texts[i]
+                output = outputs[i] if i < len(outputs) else None
+                target = targets[i] if i < len(targets) else None
                 json.dump({'text': text, 'output': output, 'target': target}, f, ensure_ascii = False)
                 f.write('\n')
     

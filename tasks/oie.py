@@ -44,7 +44,7 @@ def unserialize(example: str) -> dict[str, dict[str, set[str]]]:
     for clause in re.finditer(r'\((.+?)\)', example):
         components = clause.group(1).split(';')
         subject = components[0].strip()
-        if len(components) < 1:
+        if len(components) < 2:
             logger.warning(f'Bad clause split! Clause looks like')
             logger.warning(clause)
             verb = "ß"

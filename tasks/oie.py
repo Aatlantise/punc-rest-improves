@@ -46,10 +46,11 @@ def unserialize(example: str) -> dict[str, dict[str, set[str]]]:
             r[0] for r in
             re.findall(r'([A-Za-z, ]+?[^\s)])(; | {2,}| [,.] |\))', clause.group(1))
         ]
-        subject = components[0].strip()
-        if len(components) < 2: continue
-        verb = components[1].strip()
+        if len(components) < 2:
+            continue
         
+        subject = components[0].strip()
+        verb = components[1].strip()
         # Ω is a placeholder to signify that no object is provided for this clause, counts for 1 point
         subordinates = [a.strip() for a in components[2:]] if len(components) > 2 else ['Ω']
         

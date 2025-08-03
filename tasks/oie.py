@@ -41,15 +41,14 @@ def unserialize(example: str) -> dict[str, dict[str, set[str]]]:
     }
     """
     out: dict[str, dict[str, set[str]]] = {}
-    for clause in re.finditer(r'\((.+?)\)', example):
-        components = clause.group(1).split(';')
+    for clause in re.finditer(r'\((.+?\))', example):
+        components = [
+            r[0] for r in
+            re.findall(r'([A-Za-z, ]+?[^\s)])(; | {2,}| [,.] |\))', clause.group(1))
+        ]
         subject = components[0].strip()
-        if len(components) < 2:
-            logger.warning(f'Bad clause split! Clause looks like')
-            logger.warning(clause)
-            verb = "ß"
-        else:
-            verb = components[1].strip()
+        if len(components) < 2: continue
+        verb = components[1].strip()
         
         # Ω is a placeholder to signify that no object is provided for this clause, counts for 1 point
         subordinates = [a.strip() for a in components[2:]] if len(components) > 2 else ['Ω']
@@ -73,5 +72,5 @@ def score(texts: list[str], outputs: list[str], targets: list[str], strict = Tru
 
 
 if __name__ == '__main__':
-    s = '(Alice; has; the key) (Alice; sleep) (Bob; runs; fast; towards the school)'
+    s = '(Alice; has; the key) (Alice; sleep) (Bob; runs; fast; towards the school) (Hamburger; eats; a human , two dogs  three cats  four kangaroos)'
     print(unserialize(s))

@@ -1,6 +1,6 @@
 import re
 
-from utils import prf1, logger
+from utils import pp, prf1, logger
 
 logger = logger()
 
@@ -21,7 +21,7 @@ def oie_dict_intersection(a: dict[str, dict[str, set[str]]], b: dict[str, dict[s
     return counter
     
 
-def unserialize(example: str) -> dict[str, dict[str, set[str]]]:
+def unserialize(example: str, strict: bool) -> dict[str, dict[str, set[str]]]:
     """
     Given an OIE formated output sequence,
     split it into clauses into a dictionary indexed by the subject and the verb,
@@ -42,10 +42,7 @@ def unserialize(example: str) -> dict[str, dict[str, set[str]]]:
     """
     out: dict[str, dict[str, set[str]]] = {}
     for clause in re.finditer(r'\((.+?\))', example):
-        components = [
-            r[0] for r in
-            re.findall(r'([A-Za-z, ]+?[^\s)])(; | {2,}| [,.] |\))', clause.group(1))
-        ]
+        components = [comp.strip(' )') for comp in clause.group(1).split(';')]
         if len(components) < 2:
             continue
         
@@ -65,7 +62,7 @@ def score(texts: list[str], outputs: list[str], targets: list[str], strict = Tru
     """Score OIE by matching"""
     num_correct, num_attempted, num_gold = 0, 0, 0
     for text, output, target in zip(texts, outputs, targets):
-        output_clauses, target_clauses = unserialize(output), unserialize(target)
+        output_clauses, target_clauses = unserialize(output, strict), unserialize(target, strict)
         num_attempted += oie_dict_count(output_clauses)
         num_gold += oie_dict_count(target_clauses)
         num_correct += oie_dict_intersection(output_clauses, target_clauses)
@@ -73,5 +70,8 @@ def score(texts: list[str], outputs: list[str], targets: list[str], strict = Tru
 
 
 if __name__ == '__main__':
-    s = '(Alice; has; the key) (Alice; sleep) (Bob; runs; fast; towards the school) (Hamburger; eats; a human , two dogs  three cats  four kangaroos)'
-    print(unserialize(s))
+    s = '(The second; titled;  Consider Her Ways '') (Her Ways; consider) (The second; starred; as the lead named Jane Waterleigh; Barrie) ( Consider Her Ways ''; starred; as the lead named Jane Waterleigh; Barrie) (the lead; named; Jane Waterleigh)'
+    pp('String:')
+    pp(s)
+    pp('Dictionary:')
+    pp(unserialize(s, True))

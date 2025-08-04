@@ -62,18 +62,28 @@ def score(texts: list[str], outputs: list[str], targets: list[str], strict = Tru
     """Score OIE by matching"""
     num_correct, num_attempted, num_gold = 0, 0, 0
     for text, output, target in zip(texts, outputs, targets):
+        logger.debug('Text %s', text)
         output_clauses, target_clauses = unserialize(output, strict), unserialize(target, strict)
+        
+        logger.debug('Output %s', output)
         logger.debug('Output Dictionary')
         logger.debug(output_clauses)
+        
+        logger.debug('Target %s', target)
         logger.debug('Target Dictionary')
         logger.debug(target_clauses)
+        
         attempted, gold, correct = oie_dict_count(output_clauses), oie_dict_count(target_clauses), oie_dict_intersection(output_clauses, target_clauses)
         logger.debug('Attempted %d', attempted)
         logger.debug('Gold %d', gold)
         logger.debug('Correct %d', correct)
+        
         num_attempted += attempted
         num_gold += gold
         num_correct += correct
+        
+        logger.debug('\n')
+        
     return prf1(num_correct, num_attempted, num_gold)
 
 

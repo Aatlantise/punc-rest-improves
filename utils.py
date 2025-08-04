@@ -1,7 +1,7 @@
 import logging
 import sys
 
-from pprint import pp
+from pprint import pp # DO NOT DELETE
 from typing import Any
 
 logging.basicConfig(
@@ -33,3 +33,9 @@ def prf1(num_correct: int, num_attempted: int, num_gold: int) -> tuple[float, fl
 
 def logger(name: str = None) -> logging.Logger:
     return logging.getLogger(name or __name__)
+
+
+def par(o, name: str = None):
+    """Print and return"""
+    pp(name, o)
+    return o

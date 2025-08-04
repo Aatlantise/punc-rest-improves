@@ -1,6 +1,6 @@
 import re
 
-from utils import pp, prf1, logger
+from utils import par, prf1, logger
 
 logger = logger()
 
@@ -21,7 +21,7 @@ def oie_dict_intersection(a: dict[str, dict[str, set[str]]], b: dict[str, dict[s
     return counter
     
 
-def unserialize(example: str, strict: bool) -> dict[str, dict[str, set[str]]]:
+def unserialize(example: str, strict: bool = True) -> dict[str, dict[str, set[str]]]:
     """
     Given an OIE formated output sequence,
     split it into clauses into a dictionary indexed by the subject and the verb,
@@ -62,16 +62,14 @@ def score(texts: list[str], outputs: list[str], targets: list[str], strict = Tru
     """Score OIE by matching"""
     num_correct, num_attempted, num_gold = 0, 0, 0
     for text, output, target in zip(texts, outputs, targets):
-        output_clauses, target_clauses = unserialize(output, strict), unserialize(target, strict)
-        num_attempted += oie_dict_count(output_clauses)
-        num_gold += oie_dict_count(target_clauses)
-        num_correct += oie_dict_intersection(output_clauses, target_clauses)
+        output_clauses, target_clauses = par(unserialize(output, strict), 'output'), par(unserialize(target, strict), 'target')
+        num_attempted += par(oie_dict_count(output_clauses), 'attempted')
+        num_gold += par(oie_dict_count(target_clauses), 'gold')
+        num_correct += par(oie_dict_intersection(output_clauses, target_clauses), 'correct')
+        print()
     return prf1(num_correct, num_attempted, num_gold)
 
 
 if __name__ == '__main__':
     s = '(The second; titled;  Consider Her Ways '') (Her Ways; consider) (The second; starred; as the lead named Jane Waterleigh; Barrie) ( Consider Her Ways ''; starred; as the lead named Jane Waterleigh; Barrie) (the lead; named; Jane Waterleigh)'
-    pp('String:')
-    pp(s)
-    pp('Dictionary:')
-    pp(unserialize(s, True))
+    print(unserialize(s))

@@ -30,5 +30,6 @@ def prf1(num_correct: int, num_attempted: int, num_gold: int) -> tuple[float, fl
     f1 = 2 * precision * recall / (precision + recall)
     return precision, recall, f1
 
+
 def logger(name: str = None) -> logging.Logger:
     return logging.getLogger(name or __name__)

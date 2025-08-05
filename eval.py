@@ -675,17 +675,6 @@ def run(
                 json.dump({'text': text, 'output': output, 'target': target}, f, ensure_ascii = False)
                 f.write('\n')
     
-    logger.info('Printing generated samples.')
-    for i in range(min(len(texts), 20)):
-        print(
-            f"""
-            =============== Generated Output #{i} ===============
-            Text: {texts[i]}
-            Output: {outputs[i]}
-            Target: {targets[i]}
-            """
-        )
-    
     logger.info(f'Evaluating {task} score.')
     match task:
         case 'srl':

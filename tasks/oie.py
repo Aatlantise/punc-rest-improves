@@ -51,17 +51,23 @@ def unserialize(example: str, strict: bool) -> dict[str, dict[str, set[str]]]:
         subject = components[0].strip()
         verb = components[1].strip()
         # Ω is a placeholder to signify that no object is provided for this clause, counts for 1 point
-        subordinates = [a.strip() for a in components[2:]] if len(components) > 2 else ['Ω']
+        remaining_parts = [a.strip() for a in components[2:]] if len(components) > 2 else ['Ω']
+        
+        verb_words = verb.split(' ')
+        if len(verb_words) > 1 and not strict:
+            # make verb just one word to avoid the second part including prepositions and avoiding a match
+            verb = verb_words[0]
+            remaining_parts.extend(verb_words[1:])
         
         if len(components) > 2 and not strict:
             new_splits = []
-            for phrase in subordinates:
+            for phrase in remaining_parts:
                 new_splits.extend(phrase.split(' '))
-            subordinates = new_splits
+            remaining_parts = new_splits
         
         out.setdefault(subject, {})
         out[subject].setdefault(verb, set())
-        out[subject][verb] = out[subject][verb].union(set(subordinates))
+        out[subject][verb] = out[subject][verb].union(set(remaining_parts))
         
     return out
 
@@ -70,30 +76,30 @@ def score(texts: list[str], outputs: list[str], targets: list[str], strict = Fal
     """Score OIE by matching"""
     num_correct, num_attempted, num_gold = 0, 0, 0
     for text, output, target in zip(texts, outputs, targets):
-        logger.debug('Text %s', text)
+        # logger.debug('Text %s', text)
         output_clauses, target_clauses = unserialize(output, strict), unserialize(target, strict)
         
-        logger.debug('Output %s', output)
-        logger.debug('Output Dictionary')
-        logger.debug(output_clauses)
+        # logger.debug('Output %s', output)
+        # logger.debug('Output Dictionary')
+        # logger.debug(output_clauses)
         
-        logger.debug('Target %s', target)
-        logger.debug('Target Dictionary')
-        logger.debug(target_clauses)
+        # logger.debug('Target %s', target)
+        # logger.debug('Target Dictionary')
+        # logger.debug(target_clauses)
         
         attempted = oie_dict_count(output_clauses)
         gold = oie_dict_count(target_clauses)
         correct = oie_dict_intersection(output_clauses, target_clauses)
         
-        logger.debug('Attempted %d', attempted)
-        logger.debug('Gold %d', gold)
-        logger.debug('Correct %d', correct)
+        # logger.debug('Attempted %d', attempted)
+        # logger.debug('Gold %d', gold)
+        # logger.debug('Correct %d', correct)
         
         num_attempted += attempted
         num_gold += gold
         num_correct += correct
         
-        logger.debug('\n')
+        # logger.debug('\n')
         
     return prf1(num_correct, num_attempted, num_gold)
 

@@ -1,5 +1,5 @@
 from data.modules import PrepData
-from utils import logger
+from utils import logger, pp
 
 logger = logger()
 
@@ -13,14 +13,17 @@ class CoNLL2000(PrepData):
             split = split,
             streaming = True,
         )
-
+    
+    def id_to_pos_tag(self, i: int) -> str:
+        return self.data.features['pos_tags'].feature.names[i]
+    
     def src_tgt_pairs(self, task: str):
         if task not in ['pos']:
             raise NotImplementedError(f'Task {task} not implemented. ')
         for example in self.data:
-            tokens, spacy_pos_str = example['tokens'], example['spacy_pos_str']
+            tokens, tags = example['tokens'], example['pos_tags']
             source = ' '.join(tokens)
-            target = ' '.join(spacy_pos_str.split()[1::2]) # only odd indices are pos labels
+            target = ' '.join(map(self.id_to_pos_tag, tags))
             yield source, target
 
 if __name__ == '__main__':

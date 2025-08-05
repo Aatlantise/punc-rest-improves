@@ -1,5 +1,6 @@
 import re
 
+from eval import triple_soft_match_score
 from utils import prf1, logger
 
 logger = logger()
@@ -21,7 +22,7 @@ def oie_dict_intersection(a: dict[str, dict[str, set[str]]], b: dict[str, dict[s
     return counter
     
 
-def unserialize(example: str, strict: bool = True) -> dict[str, dict[str, set[str]]]:
+def unserialize(example: str, strict: bool) -> dict[str, dict[str, set[str]]]:
     """
     Given an OIE formated output sequence,
     split it into clauses into a dictionary indexed by the subject and the verb,
@@ -42,7 +43,8 @@ def unserialize(example: str, strict: bool = True) -> dict[str, dict[str, set[st
     """
     out: dict[str, dict[str, set[str]]] = {}
     for clause in re.finditer(r'\((.+?\))', example):
-        components = [comp.strip(' )') for comp in clause.group(1).split(';')]
+        splits = clause.group(1).split(';')
+        components = [comp.strip(' )') for comp in splits]
         if len(components) < 2:
             continue
         
@@ -51,6 +53,12 @@ def unserialize(example: str, strict: bool = True) -> dict[str, dict[str, set[st
         # Ω is a placeholder to signify that no object is provided for this clause, counts for 1 point
         subordinates = [a.strip() for a in components[2:]] if len(components) > 2 else ['Ω']
         
+        if len(components) > 2 and not strict:
+            new_splits = []
+            for phrase in subordinates:
+                new_splits.extend(phrase.split(' '))
+            subordinates = new_splits
+        
         out.setdefault(subject, {})
         out[subject].setdefault(verb, set())
         out[subject][verb] = out[subject][verb].union(set(subordinates))
@@ -58,7 +66,7 @@ def unserialize(example: str, strict: bool = True) -> dict[str, dict[str, set[st
     return out
 
 
-def score(texts: list[str], outputs: list[str], targets: list[str], strict = True) -> tuple[float, float, float]:
+def score(texts: list[str], outputs: list[str], targets: list[str], strict = False) -> tuple[float, float, float]:
     """Score OIE by matching"""
     num_correct, num_attempted, num_gold = 0, 0, 0
     for text, output, target in zip(texts, outputs, targets):
@@ -73,7 +81,10 @@ def score(texts: list[str], outputs: list[str], targets: list[str], strict = Tru
         logger.debug('Target Dictionary')
         logger.debug(target_clauses)
         
-        attempted, gold, correct = oie_dict_count(output_clauses), oie_dict_count(target_clauses), oie_dict_intersection(output_clauses, target_clauses)
+        attempted = oie_dict_count(output_clauses)
+        gold = oie_dict_count(target_clauses)
+        correct = oie_dict_intersection(output_clauses, target_clauses)
+        
         logger.debug('Attempted %d', attempted)
         logger.debug('Gold %d', gold)
         logger.debug('Correct %d', correct)
@@ -89,4 +100,4 @@ def score(texts: list[str], outputs: list[str], targets: list[str], strict = Tru
 
 if __name__ == '__main__':
     s = '(The second; titled;  Consider Her Ways '') (Her Ways; consider) (The second; starred; as the lead named Jane Waterleigh; Barrie) ( Consider Her Ways ''; starred; as the lead named Jane Waterleigh; Barrie) (the lead; named; Jane Waterleigh)'
-    print(unserialize(s))
+    print(unserialize(s, strict = False))

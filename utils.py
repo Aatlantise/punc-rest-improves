@@ -1,4 +1,6 @@
+import json
 import logging
+import re
 import sys
 
 from pprint import pp # DO NOT DELETE
@@ -39,3 +41,18 @@ def par(o, name: str = None):
     """Print and return"""
     pp(name, o)
     return o
+
+
+def oie_part_counts(filename: str):
+    counts = [0] * 8
+    with open(filename, 'r') as f:
+        for line in f:
+            a = json.loads(line)['target']
+            for b in re.finditer(r'\((.+?)\)', a):
+                l = len(b.group(1).split(';')) - 1
+                counts[l] += 1
+    pp(counts)
+
+
+if __name__ == '__main__':
+    oie_part_counts(sys.argv[1])

@@ -55,7 +55,7 @@ def run(
     num_workers: int = 4,
     strict: bool = True,
 ):
-    if task not in ['srl', 'pos', 'oie', 'ner', 're', 'chunking', 'pr']:
+    if task not in ['srl', 'pos', 'oie', 'ner', 're', 'chunking', 'pr', 'sbd']:
         raise NotImplementedError(task)
     
     print(f"=============== Model {model_name} {task} Evaluation ===============")

@@ -69,6 +69,7 @@ where `TASK` is one of
 - `pos`: Part-of-speech Tagging
 - `pr`: Punctuation Restoration
 - `re`: Relation Extraction
+- `sbd`: Sentence Boundary Detection
 - `srl`: Semantic Role Labelling
 
 `CKPT` is the path to the checkpoint used for generating outputs, and `MODEL_NAME` is a string that will be used for the generation result cache and printed information. 

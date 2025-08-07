@@ -8,27 +8,82 @@ The additional training in punctuation restoration results in
 improved in-distribution and out-of-distribution performance in various structure-related NLP tasks
 such as named entity recognition, open information extraction, and semantic role labeling.
 
-### PR training data
-The authors of the paper use an unreleased internal source to compile a PR training corpus.
-We opt to use Wikipedia to implement PR-T5.
+**Important**: Make sure you are at the repo root before running python files!
 
-The following script produces a `punctuation_restoration_dataset.jsonl`
-that contains 450k examples of 150 words, similarly to the paper:
+### Data-prepping
 
-```angular2html
-python prep-pr-data.py
+Run a file under `data/` to generate training data using the specific dataset. 
+Shared-task datasets' files will generate a separate JSONL file for each implemented task. 
+JSONL files are under `outputs/datasets/`. 
+
+For example, the following loads the CoNLL 2003 dataset and generates data for POS and NER. 
+
+```commandline
+python -m data.conll_2003
 ```
 
-### Additional training on PR
-Then, the following script performs training
+for now, it is necessary to use the `-m` and run it as a module. 
 
-```angular2html
-python main.py
+OIE datasets may require additional local data files. Refer to implementation details. 
+
+### Pre-training and Fine-tuning
+
+```commandline
+python train.py TASK -n CKPT_NAME
 ```
+
+where `TASK` is one of
+
+- `chunking`: Chunking
+- `mlm`: Masked Language Modelling
+- `ner`: Named Entity Recognition
+- `oie`: Open Information Extraction
+- `pos`: Part-of-speech Tagging
+- `pr`: Punctuation Restoration
+- `re`: Relation Extraction
+- `srl`: Semantic Role Labelling
+
+and `CKPT_NAME` is a string that will be prefixed to the generating checkpoint. 
+Checkpoints are under `outputs/checkpoints/`. 
+
+Optional arguments: 
+
+- `-d`: path to a JSONL file containing training data. By default, a file associated with the task is used. 
+- `-e`: number of epochs to run. `-e 30` to run exactly 30 epochs, `-e 1-3` to run at least 1 and at most 3.
+- `-k`: number of epochs to save. This saves the epochs with the $k$-most minimum validation losses. 
+- `-r`: path to a checkpoint to resume training on.
+- `-s`: index of an epoch to save. **Starts at 0 (0 is first epoch)**. Can be provided multiple times.
+- `--save-last-epoch`: save the last epoch. 
+
+### Evaluating
+
+```commandline
+python eval.py TASK -c CKPT -n MODEL_NAME
+```
+
+where `TASK` is one of
+
+- `chunking`: Chunking
+- `ner`: Named Entity Recognition
+- `oie`: Open Information Extraction
+- `pos`: Part-of-speech Tagging
+- `pr`: Punctuation Restoration
+- `re`: Relation Extraction
+- `srl`: Semantic Role Labelling
+
+`CKPT` is the path to the checkpoint used for generating outputs, and `MODEL_NAME` is a string that will be used for the generation result cache and printed information. 
+Generation result cache files are under `outputs/generated/`. 
+
+Optional arguments: 
+
+- `-d`: path to a JSONL file containing evaluation data. By default, a file associated with the task is used. 
+- `--strict`: use a stricter evaluation metric dependent on the task. Might not always have an effect. 
+
+### Logs
 
 Tensorboard logs can be viewed at [localhost:6006](localhost:6006) by:
-```angular2html
-tensorboard --logdir=outputs/logs/version_0 --host=0.0.0.0
+```commandline
+tensorboard --logdir=outputs/logs --host=0.0.0.0
 ```
 
 If you're on GU CLI, refer to the [GU CLI remote dev guide](https://github.com/Aatlantise/gu-cli-remote-dev)

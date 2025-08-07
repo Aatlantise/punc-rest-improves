@@ -676,15 +676,6 @@ def run(
                 f.write('\n')
     
     logger.info(f'Evaluating {task} score.')
-    # match task:
-    #     case 'srl':
-    #         from tasks.srl import score
-    #     case 'pos':
-    #         from tasks.pos import score
-    #     case 'oie':
-    #         from tasks.oie import score
-    #     case _:
-    #         raise NotImplementedError(task)
     if task in ['srl', 'pos', 'oie']:
         score = importlib.import_module('tasks.' + task).score
     else:

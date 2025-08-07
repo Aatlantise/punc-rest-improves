@@ -70,9 +70,10 @@ def score(texts: list[str], outputs: list[str], targets: list[str], strict: bool
     -> tuple[float, float, float]:
     """Calculate precision, recall, and F1 score for SRL task on CoNLL 2012"""
     num_correct, num_attempted, num_gold = 0, 0, 0
-    logger.debug('Evaluating. Imperfect attempts will be logged. \n')
     for text, output, target in zip(texts, outputs, targets):
         if strict:
+            logger.debug('Evaluating. Imperfect attempts will be logged. \n')
+            
             output_dict, output_label_count = seq_to_struct(output)
             num_attempted += output_label_count
             

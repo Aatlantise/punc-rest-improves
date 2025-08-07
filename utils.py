@@ -14,6 +14,10 @@ logging.basicConfig(
 )
 
 
+def clean_split(s: str) -> list[str]:
+    return [k.strip(' ') for k in s.strip(' ').strip(')').strip('(').strip(' ').split(') (')]
+
+
 def multiset_intersection(a, b):
     """The key types should be hashable of course, and the values numerics"""
     total = 0
@@ -30,7 +34,12 @@ def list_hamming_dist(a: list[Any], b: list[Any]) -> int:
 def prf1(num_correct: int, num_attempted: int, num_gold: int) -> tuple[float, float, float]:
     precision = num_correct / num_attempted
     recall = num_correct / num_gold
-    f1 = 2 * precision * recall / (precision + recall)
+    
+    if precision + recall == 0:
+        f1 = 0
+    else:
+        f1 = 2 * precision * recall / (precision + recall)
+        
     return precision, recall, f1
 
 
@@ -62,6 +71,50 @@ def progress(iterable, desc: str):
 
 def getstr_safe(l: list[str], i: int):
     return l[i] if 0 <= i < len(l) else ''
+
+
+def text_to_triple(outputs, targets):
+    output_list = []
+    target_list = []
+    for output, target in zip(outputs, targets):
+
+        sentence_outputs = []
+        sentence_targets = []
+
+        if output == "":
+            pass
+        else:
+            _os = ['(' + k.strip(')').strip('(') + ')' for k in output.split(') (')]
+            for o in _os:
+                output_split = o.split(';')
+                if len(output_split) < 3:
+                    output_split.extend(["", "", ""])
+                head, pred, tail = output_split[:3]
+                sentence_outputs.append({
+                    "head": head.replace("(", "").strip(' '),
+                    "predicate": pred.strip(' '),
+                    "tail": tail.replace(")", "").strip(' ')
+                })
+
+        if target == "":
+            pass
+        else:
+            ts = ['(' + k.strip(' ').strip(')').strip('(') + ')' for k in target.split(') (')]
+            for t in ts:
+                target_split = t.split(';')
+                if len(target_split) < 3:
+                    target_split.extend(["", "", ""])
+                head, pred, tail = target_split[:3]
+                sentence_targets.append({
+                    "head": head.replace("(", "").strip(' '),
+                    "predicate": pred.strip(' '),
+                    "tail": tail.replace(")", "").strip(' ')
+                })
+
+        output_list.append(sentence_outputs)
+        target_list.append(sentence_targets)
+
+    return output_list, target_list
 
 
 if __name__ == '__main__':

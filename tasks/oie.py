@@ -1,6 +1,6 @@
 import re
 
-from utils import prf1, logger, getstr_safe
+from utils import prf1, logger, getstr_safe, text_to_triple
 
 logger = logger()
 
@@ -87,29 +87,7 @@ def triple_soft_match_score(
     :param targets: List of target (gold) sequences
     :param printer: Printing function--can be a logger or print, or other custom function
     """
-    output_list: list[list[dict[str, str]]] = []
-    for output in outputs:
-        temp = []
-        for paren in re.finditer(r'\((.+?)\)', output):
-            components = paren.group(1).split(';')
-            temp.append({
-                'head': getstr_safe(components, 0),
-                'predicate': getstr_safe(components, 1),
-                'tail': getstr_safe(components, 2),
-            })
-        output_list.append(temp)
-    
-    target_list: list[list[dict[str, str]]] = []
-    for target in targets:
-        temp = []
-        for paren in re.finditer(r'\((.+?)\)', target):
-            components = paren.group(1).split(';')
-            temp.append({
-                'head': getstr_safe(components, 0),
-                'predicate': getstr_safe(components, 1),
-                'tail': getstr_safe(components, 2),
-            })
-        target_list.append(temp)
+    output_list, target_list = text_to_triple(outputs, targets)
 
     def evaluate(sent, gold_head, gold_pred, gold_tail, extractions):
         """
@@ -349,8 +327,6 @@ def score(texts: list[str], outputs: list[str], targets: list[str], strict = Fal
             num_attempted += attempted
             num_gold += gold
             num_correct += correct
-            
-            # logger.debug('\n')
     else:
         num_correct, num_attempted, num_gold = triple_soft_match_score(texts, outputs, targets)
         

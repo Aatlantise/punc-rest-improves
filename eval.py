@@ -1,3 +1,4 @@
+import importlib
 import json
 import os
 
@@ -615,7 +616,6 @@ def sbd_score(texts, outputs, targets, printer=print):
                 f"|Macr|{'%.3f' % macro_p}|{'%.3f' % macro_r}|{'%.3f' % macro_f1}|\n")
         return macro_f1
 
-
 def run(
     task: str,
     model_name: str,
@@ -676,15 +676,19 @@ def run(
                 f.write('\n')
     
     logger.info(f'Evaluating {task} score.')
-    match task:
-        case 'srl':
-            from tasks.srl import score
-        case 'pos':
-            from tasks.pos import score
-        case 'oie':
-            from tasks.oie import score
-        case _:
-            raise NotImplementedError(task)
+    # match task:
+    #     case 'srl':
+    #         from tasks.srl import score
+    #     case 'pos':
+    #         from tasks.pos import score
+    #     case 'oie':
+    #         from tasks.oie import score
+    #     case _:
+    #         raise NotImplementedError(task)
+    if task in ['srl', 'pos', 'oie']:
+        score = importlib.import_module('tasks.' + task).score
+    else:
+        raise NotImplementedError(task)
     p, r, f1 = score(texts, outputs, targets, strict = strict)
     print(
         f"""

@@ -3,7 +3,8 @@ import logging
 import re
 import sys
 
-from pprint import pp # DO NOT DELETE
+from pprint import pp
+from tqdm import tqdm
 from typing import Any
 
 logging.basicConfig(
@@ -52,6 +53,11 @@ def oie_part_counts(filename: str):
                 l = len(b.group(1).split(';')) - 1
                 counts[l] += 1
     pp(counts)
+    
+    
+def progress(iterable, desc: str):
+    """Progress Bar for an Iterable Object"""
+    return tqdm(iterable, ascii = True, desc = desc)
 
 
 if __name__ == '__main__':

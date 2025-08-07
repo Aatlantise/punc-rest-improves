@@ -6,11 +6,10 @@ logger = logger()
 
 class CoNLL2003(PrepData):
 
-    def __init__(self, split = 'train'):
+    def __init__(self):
         """Loads dataset form hugging face"""
         super().__init__(
             path = 'lhoestq/conll2003',
-            split = split,
             streaming = True,
         )
     
@@ -27,11 +26,12 @@ class CoNLL2003(PrepData):
     def src_tgt_pairs(self, task: str):
         if task not in ['pos']:
             raise NotImplementedError(f'Task {task} not implemented. ')
-        for example in self.data:
-            tokens, tags = example['tokens'], example['pos_tags']
-            source = ' '.join(tokens)
-            target = ' '.join(map(self.id_to_pos_tag, tags))
-            yield source, target
+        for _, split in self.data.items():
+            for example in split:
+                tokens, tags = example['tokens'], example['pos_tags']
+                source = ' '.join(tokens)
+                target = ' '.join(map(self.id_to_pos_tag, tags))
+                yield source, target
 
 if __name__ == '__main__':
     o = CoNLL2003()

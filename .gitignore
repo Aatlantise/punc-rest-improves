@@ -2,3 +2,4 @@
 eval/*
 docker/*
 *.sh
+/outputs/

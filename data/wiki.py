@@ -4,7 +4,7 @@ import re
 
 from data.modules import PrepData
 from nltk.tokenize import sent_tokenize, word_tokenize
-
+from utils import progress
 
 # Constants
 PUNCTUATION_TO_REMOVE = {',', '.', '!', '?', '"', '’', '“', '”', "'"}
@@ -69,34 +69,33 @@ class Wiki2023(PrepData):
 
     def __init__(self):
         super().__init__(
-            path='wikimedia/wikipedia',
-            name='20231101.en',
-            split='train',
-            streaming=True
+            path = 'wikimedia/wikipedia',
+            name = '20231101.en',
         )
 
     def src_tgt_pairs(self, task):
         excerpt_count = 0
-        for article in self.data:
-            text = article.get("text", "")
-            if not text or len(text) < 200:
-                continue
-                
-            text = remove_reference_tags(text)
-            text = sent_tokenize(text)
-            for chunk in chunk_sentences(text, max_words = MAX_WORDS):
-                target = chunk.strip()
-                
-                if task == 'pr':
-                    yield normalize_text(target), target
-                elif task == 'mlm':
-                    yield mask_text(chunk.strip())
-                else:
-                    raise NotImplementedError(f'Task {task} not implemented. ')
-                
-                excerpt_count += 1
-                if excerpt_count >= MAX_EXCERPTS:
-                    return
+        for _, split in self.data.items():
+            for article in progress(split, 'Wiki dataprep for ' + task):
+                text = article.get("text", "")
+                if not text or len(text) < 200:
+                    continue
+                    
+                text = remove_reference_tags(text)
+                text = sent_tokenize(text)
+                for chunk in chunk_sentences(text, max_words = MAX_WORDS):
+                    target = chunk.strip()
+                    
+                    if task == 'pr':
+                        yield normalize_text(target), target
+                    elif task == 'mlm':
+                        yield mask_text(chunk.strip())
+                    else:
+                        raise NotImplementedError(f'Task {task} not implemented. ')
+                    
+                    excerpt_count += 1
+                    if excerpt_count >= MAX_EXCERPTS:
+                        return
 
 
 if __name__ == "__main__":
@@ -104,4 +103,5 @@ if __name__ == "__main__":
     nltk.download('punkt_tab')
     random.seed(42)
     ds = Wiki2023()
+    ds.to_json('pr', 'wiki-20231101.en-pr')
     ds.to_json('mlm', 'wiki-20231101.en-mlm')

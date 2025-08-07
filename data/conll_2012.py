@@ -12,12 +12,11 @@ def remove_bio_prefixes(label: str) -> str:
 
 class CoNLL2012(PrepData):
 
-    def __init__(self, split = 'train'):
+    def __init__(self):
         """Loads dataset form hugging face"""
         super().__init__(
-            path='ontonotes/conll2012_ontonotesv5',
-            name='english_v4',
-            split=split,
+            path = 'ontonotes/conll2012_ontonotesv5',
+            name = 'english_v4',
             # streaming=True, # doesn't work since have to index 'sentences'
         )
 

@@ -1,4 +1,5 @@
 from data.modules import PrepData
+from tasks.ner import process
 from utils import logger
 
 logger = logger()
@@ -22,24 +23,7 @@ class GENIA(PrepData):
             for example in split:
                 tokens = example['tokens']
                 tags = map(self.id_to_ner_tag, example['ner_tags'])
-                source = ' '.join(tokens)
-                curr = ""
-                target = []
-                for token, tag in zip(tokens, tags):
-                    if tag.startswith("B-"):
-                        if curr:
-                            target.append(curr)
-                        curr = f"({token}:{tag[2:]})"
-                    elif tag.startswith("I-"):
-                        curr = curr[:-len(tag[2:]) - 2] + f" {token}:{tag[2:]})"
-                    else:
-                        if curr:
-                            target.append(curr)
-                        curr = ""
-                if curr:
-                    target.append(curr)
-                target_string = " ".join(target) if target else "O"  # O if no predictions
-                yield source, target_string
+                yield process(tokens, tags)
 
 
 if __name__ == '__main__':

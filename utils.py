@@ -60,5 +60,9 @@ def progress(iterable, desc: str):
     return tqdm(iterable, ascii = True, desc = desc)
 
 
+def getstr_safe(l: list[str], i: int):
+    return l[i] if 0 <= i < len(l) else ''
+
+
 if __name__ == '__main__':
     oie_part_counts(sys.argv[1])

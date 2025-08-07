@@ -79,6 +79,9 @@ def sequence_tagging_score(texts, outputs, targets, printer=print):
     correct = 0
     attempt = 0
     for output, target in zip(outputs, targets):
+        printer("output: ", output)
+        printer("target: ", target)
+        
         os = output.split(' ')
         ts = target.split(' ')
 
@@ -126,9 +129,9 @@ def object_generation_score(texts, outputs, targets, printer=print):
         attempts += len(a)
         total_gold += len(g)
 
-        # printer("input: ", sent)
-        # printer("predicted labels: ", a)
-        # printer("gold labels: ", g)
+        printer("input: ", sent)
+        printer("predicted labels: ", a)
+        printer("gold labels: ", g)
 
         # use exact match
         correct += len([k for k in a if k in g])

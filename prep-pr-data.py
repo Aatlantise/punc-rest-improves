@@ -262,6 +262,37 @@ def generate_ontonotes_data(OUTPUT_PATH):
             excerpt_count += 1
     print(f"prepared from {excerpt_count} excerpts from ontonotes dataset")
     
+# def generate_conll00_data(OUTPUT_PATH):
+#     conl00_data = load_dataset("eriktks/conll2000", split="train", trust_remote_code=True)
+#     excerpt_counter = 0
+#     tag_names = conl00_data.features['chunk_tags'].feature.names
+#     excerpt_count = 0
+#     with open (OUTPUT_PATH, 'w', encoding = 'utf-8') as fout:
+#         for example in conl00_data:
+#             tokens = example['tokens']
+#             source = ' '.join(tokens)
+#             tags = [tag_names[tag] for tag in example['chunk_tags']]
+#             target = []
+#             curr=""
+#             for token, tag in zip(tokens, tags):
+#                 if tag.startswith("B-"):
+#                     if curr:
+#                         target.append(curr)
+#                     curr =  f"({token}:{tag[2:]})"
+#                 elif tag.startswith("I-"):
+#                     curr = curr[:-len(tag[2:])-2] + f" {token}:{tag[2:]})"
+#                 else:
+#                     if curr:
+#                         target.append(curr)
+#                     curr = ""
+#             if curr:
+#                 target.append(curr)
+#             target_string = " ".join(target) if target else "O" # O if no predictions
+#             json.dump({'source': source, 'target': target_string}, fout, ensure_ascii=False)
+#             fout.write('\n')
+#             excerpt_count += 1
+#     print(f"prepared from {excerpt_count} excerpts from conll2000 dataset")
+
 def generate_conll00_data(OUTPUT_PATH):
     conl00_data = load_dataset("eriktks/conll2000", split="train", trust_remote_code=True)
     excerpt_counter = 0
@@ -272,27 +303,12 @@ def generate_conll00_data(OUTPUT_PATH):
             tokens = example['tokens']
             source = ' '.join(tokens)
             tags = [tag_names[tag] for tag in example['chunk_tags']]
-            target = []
-            curr=""
-            for token, tag in zip(tokens, tags):
-                if tag.startswith("B-"):
-                    if curr:
-                        target.append(curr)
-                    curr =  f"({token}:{tag[2:]})"
-                elif tag.startswith("I-"):
-                    curr = curr[:-len(tag[2:])-2] + f" {token}:{tag[2:]})"
-                else:
-                    if curr:
-                        target.append(curr)
-                    curr = ""
-            if curr:
-                target.append(curr)
-            target_string = " ".join(target) if target else "O" # O if no predictions
+            
+            target_string = " ".join(tags)
             json.dump({'source': source, 'target': target_string}, fout, ensure_ascii=False)
             fout.write('\n')
             excerpt_count += 1
     print(f"prepared from {excerpt_count} excerpts from conll2000 dataset")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

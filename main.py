@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 from typing import List, Any, Union
 from datasets import Dataset
-from eval import pr_score, object_generation_score
+from eval import pr_score, object_generation_score, sequence_tagging_score
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
@@ -55,7 +55,7 @@ def set_seed(seed):
         torch.cuda.manual_seed_all(seed)
 
 def load_dataset_name(dataset_name:str):
-    # name should be a jsonl file. Originall "punctuation_restoration_dataset.jsonl"
+    # name should be a jsonl file. Original wikipedia data is "punctuation_restoration_dataset.jsonl"
     with open(dataset_name) as f:
         data = []
         for line in f:
@@ -76,17 +76,40 @@ def load_pr_dataset():
     return load_dataset_name('punctuation_restoration_dataset.jsonl')
 
 def load_conll03_dataset():
-    return load_dataset_name('processed_conll03.jsonl')
+    return load_dataset_name('conll2003_data.jsonl')
+
+def load_conll00_dataset():
+    return load_dataset_name('conll2000_data.jsonl')
+
+def load_ontonotes_dataset():
+    return load_dataset_name('ontonotes_data.jsonl')
+
+def load_conll04_dataset():
+    return load_dataset_name('conll2004_data.jsonl')
+
+def load_GENIA_dataset():
+    return load_dataset_name('GENIA_data.jsonl')
+
+
 
 def load_prepped_dataset(task_name:str):
     if task_name == "pr":
         return load_pr_dataset()
-    elif task_name == "ner":
+    elif task_name == "conll2003":
+        print("conll2003 for NER")
         return load_conll03_dataset()
-    elif task_name == "relation_extraction":
-        return -1
-    elif task_name == "info_extraction":
-        return -1
+    elif task_name == "ontonotes":
+        print("ontonotes for NER")
+        return load_ontonotes_dataset()
+    elif task_name == "GENIA":
+        print("GENIA for NER")
+        return load_GENIA_dataset()
+    elif task_name == "conll2000":
+        print("conll2000 for chunking")
+        return load_conll00_dataset()
+    elif task_name == "conll2004":
+        print("conll2004 for relation extraction")
+        return load_conll04_dataset()
     else:
         print(f"invalid task name:{task_name}")
         return None
@@ -132,7 +155,7 @@ class PRT5(pl.LightningModule):
         self.model = T5ForConditionalGeneration.from_pretrained(model_name_or_path)
         self.tokenizer = T5TokenizerFast.from_pretrained(model_name_or_path)
         self.test_dl = DataLoader(
-            get_punctuation_dataset(self.tokenizer, "test", self.hparams.max_seq_length, task_name),
+            get_punctuation_dataset(self.tokenizer, "test", self.hparams.max_seq_length, self.hparams.task_name),
             batch_size=self.hparams.eval_batch_size,
             num_workers=4,
         )
@@ -151,8 +174,22 @@ class PRT5(pl.LightningModule):
             all_targets.extend(output["targets"])
 
         # Now evaluate using your custom metric
-        score = pr_score(all_sources, all_preds, all_targets)
-        self.log("PR F1 Score: ", score)
+        score = -1
+        if self.hparams.task_name == "pr":
+            score = pr_score(all_sources, all_preds, all_targets)
+        elif self.hparams.task_name in ["conll2003", "ontonotes", "GENIA"]:
+            print(f"test epoch evaluating {self.hparams.task_name} for NER")
+            score = object_generation_score(all_sources, all_preds, all_targets)
+        elif self.hparams.task_name == "conll2000":
+            print("test epoch conll2000 for chunking")
+            score = sequence_tagging_score(all_sources, all_preds, all_targets)
+        elif self.hparams.task_name == "conll2004":
+            print("test epoch conll2004 for relation extraction")
+            score = object_generation_score(all_sources, all_preds, all_targets)
+        else:
+            print(f"task name ({self.hparams.task_name}) does not exist")      
+        
+        self.log("PR modified F1 Score: ", score)
 
         # Optionally, write to file for inspection
         #  with open("test_predictions.jsonl", "w") as f:
@@ -298,7 +335,7 @@ def run(
     monitor_metric: str = "val_loss",
     log_every_n_steps: int = 10,
     resume_from_checkpoint: str = None,
-    task_name: str = "ner",
+    task_name: str = "conll2003",
     evaluate_only: bool = False,
 ):
     pl.seed_everything(seed)
@@ -361,6 +398,7 @@ def run(
         trainer.test(model)
     
     # Get evaluations
+    print("getting evaluations...")
     run_eval(task_name, 
              output_dir, 
              eval_batch_size=eval_batch_size, 
@@ -376,26 +414,29 @@ def run_eval(task_name, output_dir,eval_batch_size, max_seq_length,ckpt_name="la
     texts, outputs, targets = generate(
         ckpt = None,
         model=model,
-        input_dataset=get_punctuation_dataset(model.tokenizer, "test", max_seq_length, "ner"),
+        input_dataset=get_punctuation_dataset(model.tokenizer, "test", max_seq_length, task_name),
         tokenizer=model.tokenizer,
         batch_size=eval_batch_size,
         max_len=max_seq_length,
         shuffle=False
     )
-    if task_name == "ner":
-        print("NER evaluation running: ")
-        object_generation_score(texts, outputs, targets)
-    elif task_name == "pr":
+
+    if task_name == "pr":
         print("PR evaluation running: ")
-        # pr_score(texts, outputs, targets)
-    elif task_name == "relation_extraction":
-        return -1
-    elif task_name == "info_extraction":
-        return -1
+        pr_score(texts, outputs, targets)
+    elif task_name in ["conll2003", "ontonotes", "GENIA"]:
+        print(f"evaluating {task_name} for NER")
+        object_generation_score(texts, outputs, targets)
+    elif task_name == "conll2000":
+        print("conll2000 for chunking")
+        sequence_tagging_score(texts, outputs, targets)
+    elif taskname == "conll2004":
+        print("conll2004 for relation extraction")
+        object_generation_score(texts, outputs, targets)
     else:
-        print("task name does not exist")
+        print(f"task name ({task_name}) does not exist")
         return        
-    
+
 
 def generate(ckpt: Union[str, None], model, input_dataset, tokenizer, batch_size, max_len=256, num_beams=4, skip_special_tokens=True, shuffle=True):
     if ckpt is not None:
@@ -430,7 +471,8 @@ if __name__ == "__main__":
     parser.add_argument("--model_name_or_path", type=str, default="t5-base")
     parser.add_argument("--output_dir", type=str, default="./outputs")
     parser.add_argument("--evaluate_only", action="store_true")
-    parser.add_argument("--task_name", type=str, default="ner")
+    parser.add_argument("--task_name", type=str, default="conll2003")
+    # task name is dataset name apart from wikipedia which is "pr"
     parser.add_argument("--max_epochs", type=int, default=3)
     args = parser.parse_args()
     print("inputs are: ", vars(args))

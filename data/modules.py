@@ -17,7 +17,7 @@ class PrepData:
     def __init__(self, hf_dataset: bool = True, **kwargs) -> None:
         """Loads dataset form hugging face"""
         if hf_dataset:
-            self.data = load_dataset(**kwargs)
+            self.data = load_dataset(trust_remote_code = True, **kwargs)
         else:
             self.data = []
         

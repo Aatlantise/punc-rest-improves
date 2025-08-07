@@ -24,10 +24,13 @@ class OIE2016(PrepData):
         last_sentence, target = None, None
         for example in self.data:
             parts = example.split('\t')
-            sentence, rest = parts[0], parts[2:] # parts[1] is the pure verb
+            sentence, rest = parts[0], parts[2:] # parts[1] is the simple verb
             if not sentence[0].isalnum(): continue
-            rest[1], rest[0] = rest[0], rest[1] # swap verb and subject
-            segment = '(' + '; '.join([w.strip() for w in rest]) + ') '
+            if not len(rest) >= 2: continue
+            
+            # only include subject, verb, and object
+            # sometimes the object position will have a complement or a modifier instead. ignoring this for now
+            segment = f'({rest[1].strip()}; {rest[0].strip()};{" " + rest[2].strip() if len(rest) >= 3 else ""}) '
             if sentence == last_sentence:
                 target += segment
             else:

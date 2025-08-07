@@ -106,7 +106,7 @@ def run(
                 mode = 'min',
             ),
             LearningRateMonitor(logging_interval = 'step'),
-            IndividualCheckpoints(epochs_to_save_at = epochs_to_save, name = ckpt_filename), # Save 1st and 10th epochs
+            IndividualCheckpoints(epochs_to_save_at = epochs_to_save, name = ckpt_filename),
         ],
         precision = precision,
         accelerator = accelerator,

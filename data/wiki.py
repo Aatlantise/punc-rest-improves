@@ -21,8 +21,6 @@ def normalize_text(text):
 def mask_text(
     text: str,
     p_mask: float = 0.15,
-    # p_mask_as_token: float = 0.8,
-    # p_mask_as_random_word: float = 0.1,
 ) -> tuple[str, str]:
     """Mask tokens according to parameters and return source and target strings. """
     source_words = word_tokenize(text)

@@ -1,5 +1,3 @@
-import logging
-import sys
 import torch
 
 from data.modules import TrainData
@@ -14,13 +12,9 @@ from transformers import (
     get_scheduler,
 )
 from typing import Callable, Union
+from utils import logger
 
-logging.basicConfig(
-    format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level = logging.DEBUG,
-    stream = sys.stdout,
-)
-logger = logging.getLogger(__name__)
+logger = logger()
 
 
 class PRT5(LightningModule):

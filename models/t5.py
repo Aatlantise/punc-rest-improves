@@ -4,7 +4,6 @@ from data.modules import TrainData
 from lightning import LightningModule
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 from transformers import (
     PreTrainedModel,
     T5ForConditionalGeneration,
@@ -12,7 +11,7 @@ from transformers import (
     get_scheduler,
 )
 from typing import Callable, Union
-from utils import logger
+from utils import logger, progress
 
 logger = logger()
 
@@ -162,7 +161,7 @@ class PRT5(LightningModule):
     ) -> tuple[list[str], list[str], list[str]]:
         texts, outputs, targets = [], [], []
         with torch.no_grad():
-            for batch in tqdm(input_dataloader):
+            for batch in progress(input_dataloader, 'Generating texts'):
                 texts.extend(map(self.decoder(skip_special_tokens), batch['input_ids']))
                 outputs.extend(map(self.decoder(skip_special_tokens), self.model.generate(
                     input_ids = batch['input_ids'].to('cuda'),

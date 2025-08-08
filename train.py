@@ -99,7 +99,7 @@ def run(
         callbacks = [
             ModelCheckpoint(
                 dirpath = join_paths(output_dir, 'checkpoints'),
-                filename = '%s.%s.{epoch}-{val_loss:.4f}' % (ckpt_filename, timestamp),
+                filename = '%s-{epoch}-{val_loss:.4f}-%s' % (ckpt_filename, timestamp),
                 save_top_k = save_top_k,
                 verbose = True,
                 monitor = monitor_metric,
@@ -120,9 +120,10 @@ def run(
     logger.info('Fitted model')
     
     if save_last_epoch:
-        final_ckpt_name = '%s-final.ckpt' % ckpt_filename
-        trainer.save_checkpoint(join_paths(output_dir, 'checkpoints', final_ckpt_name))
-        logger.info(f'Saved last epoch to {final_ckpt_name}')
+        final_ckpt_name = '%s%d.ckpt' % (ckpt_filename, max_epochs)
+        final_save_path = join_paths(output_dir, 'checkpoints', final_ckpt_name)
+        trainer.save_checkpoint(final_save_path)
+        logger.info(f'Saved last epoch: {final_save_path}')
     else:
         logger.info('Not saving last epoch. Continuing. ')
     

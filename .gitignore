@@ -3,3 +3,6 @@ eval/*
 docker/*
 *.sh
 /outputs/
+**/__pycache__
+logs
+slurm

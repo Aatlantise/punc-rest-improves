@@ -5,6 +5,7 @@ import re
 import torch
 
 from argparse import ArgumentParser
+from catalog import get_dataset_path
 from data.modules import TrainData
 from datetime import datetime
 from lightning import Callback, Trainer
@@ -233,21 +234,7 @@ if __name__ == '__main__':
         help = 'Random seed for reproducibility. '
     )
     args = parser.parse_args()
-    
-    default_data_paths = {
-        'pr': 'outputs/datasets/wiki-20231101.en-pr.jsonl',
-        'mlm': 'outputs/datasets/wiki-20231101.en-mlm.jsonl',
-        'srl': 'outputs/datasets/conll-2012-srl.jsonl',
-        'pos': 'outputs/datasets/conll-2003-pos.jsonl',
-        'oie': 'outputs/datasets/oie-2016-oie.jsonl',
-        'chunking': 'outputs/datasets/conll-2000-chunking.jsonl',
-        're': 'outputs/datasets/conll-2004-re.jsonl',
-        'ner': 'outputs/datasets/conll-2003-ner.jsonl',
-    }
-    
-    if not args.dataset_jsonl and args.task not in default_data_paths.keys():
-        raise NotImplementedError(args.task)
-    
+
     min_epochs, max_epochs = 0, 0
     if re.fullmatch(r'\d+-\d+', args.epochs):
         s = args.epochs.split('-')
@@ -260,7 +247,7 @@ if __name__ == '__main__':
     
     logger.passthru(args.task, 'task')
     run(
-        data_path = logger.passthru(args.dataset_jsonl or default_data_paths[args.task], 'data path'),
+        data_path = logger.passthru(args.dataset_jsonl or get_dataset_path(args.task), 'data path'),
         resume_ckpt = logger.passthru(args.resume_ckpt, 'resume checkpoint path'),
         ckpt_filename = logger.passthru(args.ckpt_name, 'checkpoint filename'),
         epochs_to_save = logger.passthru(args.epoch_to_save, 'epochs to save'),

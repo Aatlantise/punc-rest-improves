@@ -1,12 +1,12 @@
 import json
-import os
 
 from argparse import ArgumentParser
+from catalog import get_dataset_path
 from data.modules import TrainData
 from importlib import import_module
 from tasks.ner import score as object_generation_score
 from train import PRT5
-from utils import logger, clean_split
+from utils import logger, clean_split, exist_file
 
 logger = logger()
 
@@ -61,19 +61,8 @@ def run(
     print(f"=============== Model {model_name} {task} Evaluation ===============")
     path = 'outputs/generated/%s.jsonl' % model_name.split(' ', 1)[0]
     
-    default_data_paths = {
-        'pr': 'outputs/datasets/wiki-20231101.en-pr.jsonl',
-        'mlm': 'outputs/datasets/wiki-20231101.en-mlm.jsonl',
-        'srl': 'outputs/datasets/conll-2012-srl.jsonl',
-        'pos': 'outputs/datasets/conll-2003-pos.jsonl',
-        'oie': 'outputs/datasets/oie-2016-oie.jsonl',
-        'chunking': 'outputs/datasets/conll-2000-chunking.jsonl',
-        're': 'outputs/datasets/conll-2004-re.jsonl',
-        'ner': 'outputs/datasets/conll-2003-ner.jsonl',
-    }
-    
     texts, outputs, targets = [], [], []
-    if os.path.isfile(path):
+    if exist_file(path):
         logger.info('Restoring outputs from %s.' % path)
         with open(path, 'r') as f:
             for line in f:
@@ -86,7 +75,7 @@ def run(
         model = PRT5.load_from_checkpoint(ckpt_path)
         
         logger.info(f'Loading dataset from path {data_path}')
-        data_path = data_path or default_data_paths[task]
+        data_path = data_path or get_dataset_path(task)
         ds = TrainData(data_path)
         
         logger.info('Initializing dataloader. ')

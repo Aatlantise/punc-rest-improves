@@ -152,26 +152,6 @@ class PRT5(LightningModule):
         torch.save(self.state_dict(), path)
         logger.info(f'Saved model to {path}')
     
-    def _generate(
-        self,
-        input_dataloader,
-        max_len,
-        num_beams,
-        skip_special_tokens,
-    ) -> tuple[list[str], list[str], list[str]]:
-        texts, outputs, targets = [], [], []
-        with torch.no_grad():
-            for batch in progress(input_dataloader, 'Generating texts'):
-                texts.extend(map(self.decoder(skip_special_tokens), batch['input_ids']))
-                outputs.extend(map(self.decoder(skip_special_tokens), self.model.generate(
-                    input_ids = batch['input_ids'].to('cuda'),
-                    attention_mask = batch['attention_mask'].to('cuda'),
-                    max_length = max_len,
-                    num_beams = num_beams,
-                )))
-                targets.extend(map(self.decoder(skip_special_tokens), batch['labels']))
-        return texts, outputs, targets
-    
     def generate(
         self,
         input_dataloader: DataLoader,
@@ -180,12 +160,28 @@ class PRT5(LightningModule):
         skip_special_tokens: bool = True,
     ) -> tuple[list[str], list[str], list[str]]:
         self.model.eval()
-        return self.to('cuda')._generate(
-            input_dataloader,
-            max_len,
-            num_beams,
-            skip_special_tokens,
-        )
+        cuda_plm = self.to('cuda')
+        texts, outputs, targets = [], [], []
+        with torch.no_grad():
+            for batch in progress(input_dataloader, 'Generating texts'):
+                texts.extend(map(
+                    cuda_plm.decoder(skip_special_tokens),
+                    batch['input_ids']
+                ))
+                outputs.extend(map(
+                    cuda_plm.decoder(skip_special_tokens),
+                    cuda_plm.model.generate(
+                        input_ids = batch['input_ids'].to('cuda'),
+                        attention_mask = batch['attention_mask'].to('cuda'),
+                        max_length = max_len,
+                        num_beams = num_beams,
+                    )
+                ))
+                targets.extend(map(
+                    cuda_plm.decoder(skip_special_tokens),
+                    batch['labels']
+                ))
+        return texts, outputs, targets
     
     def test(self, eval_metric: Callable[[list[str], list[str], list[str]], tuple[float, float, float]]):
         if not eval_metric:

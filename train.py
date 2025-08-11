@@ -113,6 +113,7 @@ def run(
         devices = devices,
         log_every_n_steps = log_every_n_steps,
         default_root_dir = output_dir,
+        accumulate_grad_batches = 16,
     )
     logger.info('Initialized trainer')
     
@@ -185,12 +186,35 @@ if __name__ == '__main__':
             """
     )
     parser.add_argument(
+        '--learning-rate',
+        type = float, default = 3e-4,
+        help = """
+            Learning rate.
+            """
+    )
+    parser.add_argument(
+        '--max-seq-len',
+        type = int, default = 512,
+        help = """
+            Max token length in a sequence.
+            """
+    )
+    parser.add_argument(
+        '--precision',
+        type = str, default = 'bf16-mixed',
+        help = """
+            Precision for lightning trainer.
+            
+            Choose one of
+            64, 64-true, 32, 32-true, 16, 16-mixed, bf16, bf16-mixed.
+            """
+    )
+    parser.add_argument(
         '-r', '--resume-ckpt',
         type = str,
         help = """
             Checkpoint file to use at the beginning of the training.
-            If left unprovided for a pre-training task, t5-base will be used.
-            If left unprovided for a fine-tuning task, a checkpoint pre-trained on PR will be used.
+            If left unprovided, t5-base will be used.
             """
     )
     parser.add_argument(
@@ -202,6 +226,11 @@ if __name__ == '__main__':
         '-k', '--save-top-k',
         type = int, default = '1',
         help = 'Save the top k checkpoints with lowest validation loss.'
+    )
+    parser.add_argument(
+        '--seed',
+        type = int, default = 42,
+        help = 'Random seed for reproducibility. '
     )
     args = parser.parse_args()
     
@@ -215,7 +244,6 @@ if __name__ == '__main__':
         're': 'outputs/datasets/conll-2004-re.jsonl',
         'ner': 'outputs/datasets/conll-2003-ner.jsonl',
     }
-    default_pr_ckpt = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt'
     
     if not args.dataset_jsonl and args.task not in default_data_paths.keys():
         raise NotImplementedError(args.task)
@@ -231,7 +259,7 @@ if __name__ == '__main__':
         raise SyntaxError(f'Option -e/--epoch received invalid argument "{args.epochs}"')
     
     logger.debug(f"Data path is {args.dataset_jsonl or default_data_paths[args.task]}")
-    logger.debug(f"Resuming checkpoint from {args.resume_ckpt or default_pr_ckpt if args.task not in ['pr', 'mlm'] else None}")
+    logger.debug(f"Resuming checkpoint from {args.resume_ckpt}")
     logger.debug(f"Checkpoints will be named with prefix {args.ckpt_name}")
     logger.debug(f"Saving epochs {args.epoch_to_save}")
     logger.debug(f"Saving top {args.save_top_k} epochs")
@@ -240,11 +268,14 @@ if __name__ == '__main__':
     
     run(
         data_path = args.dataset_jsonl or default_data_paths[args.task],
-        resume_ckpt = args.resume_ckpt or default_pr_ckpt if args.task not in ['pr', 'mlm'] else None,
+        resume_ckpt = args.resume_ckpt,
         ckpt_filename = args.ckpt_name,
         epochs_to_save = args.epoch_to_save,
         save_last_epoch = args.save_last_epoch,
         min_epochs = min_epochs,
         max_epochs = max_epochs,
+        precision = args.precision,
         save_top_k = args.save_top_k,
+        seed = args.seed,
+        learning_rate = args.learning_rate,
     )

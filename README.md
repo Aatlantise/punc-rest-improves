@@ -50,10 +50,18 @@ Optional arguments:
 
 - `-d`: path to a JSONL file containing training data. By default, a file associated with the task is used. 
 - `-e`: number of epochs to run. `-e 30` to run exactly 30 epochs, `-e 1-3` to run at least 1 and at most 3.
-- `-k`: number of epochs to save. This saves the epochs with the $k$-most minimum validation losses. 
+- `-k`: number of epochs to save. This saves the epochs with the $k$-most minimum validation losses.
 - `-r`: path to a checkpoint to resume training on.
 - `-s`: index of an epoch to save. **Starts at 0 (0 is first epoch)**. Can be provided multiple times.
+- `--learning-rate`: learning rate. 
+- `--max-seq-len`: max token length in a sequence. 
+- `--precision`: precision for Lightning trainer. Could be one of
+  - `64`, `64-true`: 64-bit
+  - `32`, `32-true`: 32-bit
+  - `16`, `16-mixed`: 16-bit --- 5-bit exponent, 10-bit fraction
+  - `bf16`, `bf16-mixed`: 16-bit --- 8-bit exponent, 7-bit fraction
 - `--save-last-epoch`: save the last epoch. 
+- `--seed`: seed for random generation. 
 
 ### Evaluating
 

@@ -186,3 +186,24 @@ class PRT5(LightningModule):
             num_beams,
             skip_special_tokens,
         )
+    
+    def test(self, eval_metric: Callable[[list[str], list[str], list[str]], tuple[float, float, float]]):
+        if not eval_metric:
+            logger.info(f'No metric provided for in-fitting evaluations, continuing. ')
+            return
+            
+        logger.info('Testing model during fitting. ')
+        
+        logger.info('Loading test dataloader')
+        test_loader = self.test_dataloader()
+        
+        logger.info('Generating outputs')
+        texts, outputs, targets = self.generate(test_loader)
+        
+        logger.info('Evaluating current epoch')
+        p, r, f1 = eval_metric(texts, outputs, targets)
+        
+        logger.info('Evaluation complete. Results:')
+        logger.info(f'\tPrecision: \t{p:.4f}')
+        logger.info(f'\tRecall: \t{r:.4f}')
+        logger.info(f'\tF1: \t{f1:.4f}\n')

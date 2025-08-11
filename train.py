@@ -8,11 +8,13 @@ from argparse import ArgumentParser
 from catalog import get_dataset_path
 from data.modules import TrainData
 from datetime import datetime
+from importlib import import_module
 from lightning import Callback, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
 from models.t5 import PRT5
 from os.path import join as join_paths
+from typing import Callable
 from utils import logger
 
 logger = logger()
@@ -28,14 +30,23 @@ def set_seed(seed: int):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
         
-class IndividualCheckpoints(Callback):
-    def __init__(self, epochs_to_save_at: list[int], save_dir: str = 'outputs/checkpoints', name: str = 'indiv-ckpt'):
+class MyCheckpoint(Callback):
+    def __init__(
+        self,
+        epochs_to_save_at: list[int],
+        save_dir: str = 'outputs/checkpoints',
+        name: str = 'indiv-ckpt',
+        eval_metric: Callable[[list[str], list[str], list[str]], tuple[float, float, float]] = None,
+    ):
         super().__init__()
         self.epochs_to_save_at = epochs_to_save_at or []
         self.save_dir = save_dir
         self.name = name
+        self.eval_metric = eval_metric
 
     def on_train_epoch_end(self, trainer, pl_module):
+        pl_module.test(self.eval_metric)
+        
         epoch = trainer.current_epoch
         if epoch in self.epochs_to_save_at:
             timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -69,6 +80,7 @@ def run(
     train_batch_size: int = 32,
     warmup_steps: int = 0,
     weight_decay: float = 0.01,
+    eval_metric = None,
 ):
     """Run training on data path"""
     torch.set_float32_matmul_precision('medium')
@@ -107,7 +119,11 @@ def run(
                 mode = 'min',
             ),
             LearningRateMonitor(logging_interval = 'step'),
-            IndividualCheckpoints(epochs_to_save_at = epochs_to_save, name = ckpt_filename),
+            MyCheckpoint(
+                epochs_to_save_at = epochs_to_save,
+                name = ckpt_filename,
+                eval_metric = eval_metric
+            ),
         ],
         precision = precision,
         accelerator = accelerator,
@@ -130,13 +146,7 @@ def run(
         logger.info('Not saving last epoch. Continuing. ')
     
     try:
-        trainer.test(model, dataloaders = training_data.loader(
-            split = 'test',
-            tokenizer = model.tokenizer(),
-            max_seq_length = max_seq_length,
-            eval_batch_size = eval_batch_size,
-            num_workers = num_workers,
-        ))
+        trainer.test(model)
         logger.info('Tested model')
     except Exception as e:
         logger.warning('Trainer test did not run. Error below:')
@@ -245,6 +255,12 @@ if __name__ == '__main__':
     else:
         raise SyntaxError(f'Option -e/--epoch received invalid argument "{args.epochs}"')
     
+    eval_metric = None
+    try:
+        eval_metric = import_module('tasks.' + args.task).score
+    except:
+        logger.warning(f'Eval metric for task {args.task} not found.')
+    
     logger.passthru(args.task, 'task')
     run(
         data_path = logger.passthru(args.dataset_jsonl or get_dataset_path(args.task), 'data path'),
@@ -258,4 +274,5 @@ if __name__ == '__main__':
         save_top_k = logger.passthru(args.save_top_k, 'save top k'),
         seed = logger.passthru(args.seed, 'seed'),
         learning_rate = logger.passthru(args.learning_rate, 'learning rate'),
+        eval_metric = logger.passthru(eval_metric, 'evaluation metric'),
     )

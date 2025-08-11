@@ -258,24 +258,17 @@ if __name__ == '__main__':
     else:
         raise SyntaxError(f'Option -e/--epoch received invalid argument "{args.epochs}"')
     
-    logger.debug(f"Data path is {args.dataset_jsonl or default_data_paths[args.task]}")
-    logger.debug(f"Resuming checkpoint from {args.resume_ckpt}")
-    logger.debug(f"Checkpoints will be named with prefix {args.ckpt_name}")
-    logger.debug(f"Saving epochs {args.epoch_to_save}")
-    logger.debug(f"Saving top {args.save_top_k} epochs")
-    logger.debug(f"Whether to save last epoch: {args.save_last_epoch}")
-    logger.debug(f"Epochs to run: min {min_epochs}, max {max_epochs}")
-    
+    logger.passthru(args.task, 'task')
     run(
-        data_path = args.dataset_jsonl or default_data_paths[args.task],
-        resume_ckpt = args.resume_ckpt,
-        ckpt_filename = args.ckpt_name,
-        epochs_to_save = args.epoch_to_save,
-        save_last_epoch = args.save_last_epoch,
-        min_epochs = min_epochs,
-        max_epochs = max_epochs,
-        precision = args.precision,
-        save_top_k = args.save_top_k,
-        seed = args.seed,
-        learning_rate = args.learning_rate,
+        data_path = logger.passthru(args.dataset_jsonl or default_data_paths[args.task], 'data path'),
+        resume_ckpt = logger.passthru(args.resume_ckpt, 'resume checkpoint path'),
+        ckpt_filename = logger.passthru(args.ckpt_name, 'checkpoint filename'),
+        epochs_to_save = logger.passthru(args.epoch_to_save, 'epochs to save'),
+        save_last_epoch = logger.passthru(args.save_last_epoch, 'save last epoch'),
+        min_epochs = logger.passthru(min_epochs, 'min epochs'),
+        max_epochs = logger.passthru(max_epochs, 'max epochs'),
+        precision = logger.passthru(args.precision, 'precision'),
+        save_top_k = logger.passthru(args.save_top_k, 'save top k'),
+        seed = logger.passthru(args.seed, 'seed'),
+        learning_rate = logger.passthru(args.learning_rate, 'learning rate'),
     )

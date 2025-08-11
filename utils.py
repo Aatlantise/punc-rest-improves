@@ -43,14 +43,13 @@ def prf1(num_correct: int, num_attempted: int, num_gold: int) -> tuple[float, fl
     return precision, recall, f1
 
 
-def logger(name: str = None) -> logging.Logger:
-    return logging.getLogger(name or __name__)
-
-
-def par(o, name: str = None):
-    """Print and return"""
-    pp(name, o)
-    return o
+def logger(name: str = None):
+    l = logging.getLogger(name or __name__)
+    def passthru(self, v, n: str):
+        self.debug(f"Assigned {n} to {v}")
+        return v
+    logging.Logger.passthru = passthru
+    return l
 
 
 def oie_part_counts(filename: str):

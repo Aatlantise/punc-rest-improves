@@ -77,72 +77,86 @@ def generate_punctuation_restoration_data():
     print(f"⚠️ Only {excerpt_count} excerpts found (less than {MAX_EXCERPTS})")
 
 def generate_conll03_data(OUTPUT_PATH):
-    conll_data = load_dataset("conll2003", split="train", trust_remote_code=True)
-    label_names = conll_data.features['ner_tags'].feature.names
-    excerpt_count = 0
+    def generate_ner(OUTPUT_PATH, data):
+        label_names = data.features['ner_tags'].feature.names
+        excerpt_count = 0
+        with open (OUTPUT_PATH, 'w', encoding='utf-8') as fout:
+            for example in data:
+                text = example['tokens']
+                # each example is of form: {'id': '2', 'tokens': ['BRUSSELS', '1996-08-22'], 'pos_tags': [22, 11], 'chunk_tags': [11, 12], 'ner_tags': [5, 0]}
+                # tags = example['ner_tags']
+                tags = [label_names[tag] for tag in example['ner_tags']]
+                
+                source = " ".join(text)
+                target = []
+                current = ""
+                for token, tag in zip(text, tags):
+                    if tag.startswith("B-"):
+                        # if it starts with B- then this is the start of new phrase
+                        if current:
+                            target.append(current)
+                        current = f"({token}:{tag[2:]})"
+                    elif tag.startswith("I-"):
+                        # if it starts with I- then word is inside a phrase
+                        current = current[:-len(tag[2:])-2] + f" {token}:{tag[2:]})" # 2 for the I- and 1 for the ":" and 1 for the ")"
+                    else:
+                        if current:
+                            target.append(current)
+                        current = ""
+                if current:
+                    target.append(current)
+                target_string = " ".join(target) if target else "O" # O for no prediction
+                
+                json.dump({'source': source, 'target': target_string}, fout, ensure_ascii=False)
+                fout.write('\n')
 
-    with open (OUTPUT_PATH, 'w', encoding='utf-8') as fout:
-        for example in conll_data:
-            text = example['tokens']
-            # each example is of form: {'id': '2', 'tokens': ['BRUSSELS', '1996-08-22'], 'pos_tags': [22, 11], 'chunk_tags': [11, 12], 'ner_tags': [5, 0]}
-            # tags = example['ner_tags']
-            tags = [label_names[tag] for tag in example['ner_tags']]
-            
-            source = " ".join(text)
-            target = []
-            current = ""
-            for token, tag in zip(text, tags):
-                if tag.startswith("B-"):
-                    # if it starts with B- then this is the start of new phrase
-                    if current:
-                        target.append(current)
-                    current = f"({token}:{tag[2:]})"
-                elif tag.startswith("I-"):
-                    # if it starts with I- then word is inside a phrase
-                    current = current[:-len(tag[2:])-2] + f" {token}:{tag[2:]})" # 2 for the I- and 1 for the ":" and 1 for the ")"
-                else:
-                    if current:
-                        target.append(current)
-                    current = ""
-            if current:
-                target.append(current)
-            target_string = " ".join(target) if target else "O" # O for no prediction
-            
-            json.dump({'source': source, 'target': target_string}, fout, ensure_ascii=False)
-            fout.write('\n')
-
-            excerpt_count += 1
-    print(f"prepared from {excerpt_count} excerpts from conll03 dataset")
+                excerpt_count += 1
+        print(f"prepared from {excerpt_count} excerpts from {OUTPUT_PATH} dataset")
+    train = load_dataset("conll2003", split="train", trust_remote_code=True)
+    val = load_dataset("conll2003", split="validation", trust_remote_code=True)
+    test = load_dataset("conll2003", split="test", trust_remote_code=True)
+    
+    generate_ner(OUTPUT_PATH+"_train.jsonl", train)
+    generate_ner(OUTPUT_PATH+"_val.jsonl", val)
+    generate_ner(OUTPUT_PATH+"_test.jsonl", test)
+    print("generated three splits")
 
 def generate_conll04_data(OUTPUT_PATH):
-    conll_data = load_dataset("DFKI-SLT/conll04", split="train", trust_remote_code=True)
-    excerpt_count = 0
-    with open (OUTPUT_PATH, 'w', encoding = 'utf-8') as fout:
-        for example in conll_data:
-            entities = example['entities']
-            text = example['tokens']
-            relations = example['relations']
-            source = ' '.join(text)
-            target = []
-            current = ""
-            for relation in relations:
-                entity_start_index = relation['head']
-                entity_end_index = relation['tail']
-                start, end = entities[entity_start_index], entities[entity_end_index]
+    train = load_dataset("DFKI-SLT/conll04", split="train", trust_remote_code=True)
+    val = load_dataset("DFKI-SLT/conll04", split="validation", trust_remote_code=True)
+    test = load_dataset("DFKI-SLT/conll04", split="test", trust_remote_code=True)
+    def gen_RE(OUTPUT_PATH, data):
+        excerpt_count = 0
+        with open (OUTPUT_PATH, 'w', encoding = 'utf-8') as fout:
+            for example in data:
+                entities = example['entities']
+                text = example['tokens']
+                relations = example['relations']
+                source = ' '.join(text)
+                target = []
+                current = ""
+                for relation in relations:
+                    entity_start_index = relation['head']
+                    entity_end_index = relation['tail']
+                    start, end = entities[entity_start_index], entities[entity_end_index]
 
-                start_tokens = ' '.join(text[start['start']:start['end']]) # not start['end']+1 since data accounts for it
-                end_tokens = ' '.join(text[end['start']:end['end']])
-                current = "(" + start_tokens + " " + relation['type'] + " " + end_tokens + ")"
-                target.append(current)
+                    start_tokens = ' '.join(text[start['start']:start['end']]) # not start['end']+1 since data accounts for it
+                    end_tokens = ' '.join(text[end['start']:end['end']])
+                    current = "(" + start_tokens + " " + relation['type'] + " " + end_tokens + ")"
+                    target.append(current)
 
-            excerpt_count +=1
-            target_string = " ".join(target) if target else "O"
-            
-            json.dump({'source': source, 'target': target_string}, fout, ensure_ascii=False)
-            fout.write('\n')
+                excerpt_count +=1
+                target_string = " ".join(target) if target else "O"
+                
+                json.dump({'source': source, 'target': target_string}, fout, ensure_ascii=False)
+                fout.write('\n')
 
-            excerpt_count += 1
-    print(f"prepared from {excerpt_count} excerpts from conll04 dataset")
+                excerpt_count += 1
+        print(f"prepared from {excerpt_count} excerpts from {OUTPUT_PATH} dataset")
+    gen_RE(OUTPUT_PATH+"_train.jsonl", train)
+    gen_RE(OUTPUT_PATH+"_val.jsonl", val)
+    gen_RE(OUTPUT_PATH+"_test.jsonl", test)
+    print("generated three splits")
 
 def generate_TACRED_data(OUTPUT_PATH):
     TACRED_data = load_dataset("DFKI-SLT/tacred", split="train", trust_remote_code=True)
@@ -158,39 +172,49 @@ def generate_TACRED_data(OUTPUT_PATH):
             
 
 def generate_GENIA_data(OUTPUT_PATH):
-    GENIA_data = load_dataset("chufangao/GENIA-NER", split="train")
-    tag_names = GENIA_data.features['ner_tags'].feature.names
-    excerpt_count = 0
+    train = load_dataset("chufangao/GENIA-NER", split="train")
+    val = load_dataset("chufangao/GENIA-NER", split="validation")
+    test = load_dataset("chufangao/GENIA-NER", split="test")
+    
+    def gen_RE(OUTPUT_PATH, data):
+        tag_names = data.features['ner_tags'].feature.names
+        excerpt_count = 0
+        with open (OUTPUT_PATH, 'w', encoding = 'utf-8') as fout:
+            for example in data:
+                tokens = example['tokens']
+                tags = [tag_names[tag] for tag in example['ner_tags']]
+                source = ' '.join(tokens)
+                curr = ""
+                target = []
+                for token, tag in zip(tokens, tags):
+                    if tag.startswith("B-"):
+                        if curr:
+                            target.append(curr)
+                        curr =  f"({token}:{tag[2:]})"
+                    elif tag.startswith("I-"):
+                        curr = curr[:-len(tag[2:])-2] + f" {token}:{tag[2:]})"
+                    else:
+                        if curr:
+                            target.append(curr)
+                        curr = ""
+                if curr:
+                    target.append(curr)
+                target_string = " ".join(target) if target else "O" # O if no predictions
+                    
+                json.dump({'source': source, 'target': target_string}, fout, ensure_ascii=False)
+                fout.write('\n')
+                excerpt_count += 1
+        print(f"prepared from {excerpt_count} excerpts from {OUTPUT_PATH} dataset")
+    gen_RE(OUTPUT_PATH+"_train.jsonl", train)
+    gen_RE(OUTPUT_PATH+"_val.jsonl", val)
+    gen_RE(OUTPUT_PATH+"_test.jsonl", test)
+    print("generated three splits")
 
-    with open (OUTPUT_PATH, 'w', encoding = 'utf-8') as fout:
-        for example in GENIA_data:
-            tokens = example['tokens']
-            tags = [tag_names[tag] for tag in example['ner_tags']]
-            source = ' '.join(tokens)
-            curr = ""
-            target = []
-            for token, tag in zip(tokens, tags):
-                if tag.startswith("B-"):
-                    if curr:
-                        target.append(curr)
-                    curr =  f"({token}:{tag[2:]})"
-                elif tag.startswith("I-"):
-                    curr = curr[:-len(tag[2:])-2] + f" {token}:{tag[2:]})"
-                else:
-                    if curr:
-                        target.append(curr)
-                    curr = ""
-            if curr:
-                target.append(curr)
-            target_string = " ".join(target) if target else "O" # O if no predictions
-                
-            json.dump({'source': source, 'target': target_string}, fout, ensure_ascii=False)
-            fout.write('\n')
-            excerpt_count += 1
-    print(f"prepared from {excerpt_count} excerpts from GENIA dataset")
 
 def generate_ontonotes_data(OUTPUT_PATH):
-    ontonotes_data = load_dataset("tner/ontonotes5", split="train")
+    train = load_dataset("tner/ontonotes5", split="train")
+    val = load_dataset("tner/ontonotes5", split="validation")
+    test = load_dataset("tner/ontonotes5", split="test")
     # ontonotes_data = load_dataset("ontonotes/conll2012_ontonotesv5", 'english_v4', split="train", trust_remote_code=True) # this has a non-matching split error, can't be used
     # from https://huggingface.co/datasets/tner/ontonotes5
     label_map = {
@@ -233,34 +257,39 @@ def generate_ontonotes_data(OUTPUT_PATH):
         "I-LANGUAGE": 36
     }
     tag_names = list(label_map)
-    excerpt_count = 0
 
-    with open (OUTPUT_PATH, 'w', encoding = 'utf-8') as fout:
-        for example in ontonotes_data:
-            tokens = example['tokens']
-            tags = [tag_names[tag] for tag in example['tags']]
-            source = ' '.join(tokens)
-            curr = ""
-            target = []
-            for token, tag in zip(tokens, tags):
-                if tag.startswith("B-"):
-                    if curr:
-                        target.append(curr)
-                    curr =  f"({token}:{tag[2:]})"
-                elif tag.startswith("I-"):
-                    curr = curr[:-len(tag[2:])-2] + f" {token}:{tag[2:]})"
-                else:
-                    if curr:
-                        target.append(curr)
-                    curr = ""
-            if curr:
-                target.append(curr)
-            target_string = " ".join(target) if target else "O" # O if no predictions
-                
-            json.dump({'source': source, 'target': target_string}, fout, ensure_ascii=False)
-            fout.write('\n')
-            excerpt_count += 1
-    print(f"prepared from {excerpt_count} excerpts from ontonotes dataset")
+    def gen_ner(OUTPUT_PATH, data):
+        excerpt_count = 0
+        with open (OUTPUT_PATH, 'w', encoding = 'utf-8') as fout:
+            for example in data:
+                tokens = example['tokens']
+                tags = [tag_names[tag] for tag in example['tags']]
+                source = ' '.join(tokens)
+                curr = ""
+                target = []
+                for token, tag in zip(tokens, tags):
+                    if tag.startswith("B-"):
+                        if curr:
+                            target.append(curr)
+                        curr =  f"({token}:{tag[2:]})"
+                    elif tag.startswith("I-"):
+                        curr = curr[:-len(tag[2:])-2] + f" {token}:{tag[2:]})"
+                    else:
+                        if curr:
+                            target.append(curr)
+                        curr = ""
+                if curr:
+                    target.append(curr)
+                target_string = " ".join(target) if target else "O" # O if no predictions
+                    
+                json.dump({'source': source, 'target': target_string}, fout, ensure_ascii=False)
+                fout.write('\n')
+                excerpt_count += 1
+        print(f"prepared from {excerpt_count} excerpts from {OUTPUT_PATH} dataset")
+    gen_ner(OUTPUT_PATH+"_train.jsonl", train)
+    gen_ner(OUTPUT_PATH+"_val.jsonl", val)
+    gen_ner(OUTPUT_PATH+"_test.jsonl", test)
+    print("generated three splits")
     
 # def generate_conll00_data(OUTPUT_PATH):
 #     conl00_data = load_dataset("eriktks/conll2000", split="train", trust_remote_code=True)
@@ -294,21 +323,31 @@ def generate_ontonotes_data(OUTPUT_PATH):
 #     print(f"prepared from {excerpt_count} excerpts from conll2000 dataset")
 
 def generate_conll00_data(OUTPUT_PATH):
-    conl00_data = load_dataset("eriktks/conll2000", split="train", trust_remote_code=True)
-    excerpt_counter = 0
-    tag_names = conl00_data.features['chunk_tags'].feature.names
-    excerpt_count = 0
-    with open (OUTPUT_PATH, 'w', encoding = 'utf-8') as fout:
-        for example in conl00_data:
-            tokens = example['tokens']
-            source = ' '.join(tokens)
-            tags = [tag_names[tag] for tag in example['chunk_tags']]
-            
-            target_string = " ".join(tags)
-            json.dump({'source': source, 'target': target_string}, fout, ensure_ascii=False)
-            fout.write('\n')
-            excerpt_count += 1
-    print(f"prepared from {excerpt_count} excerpts from conll2000 dataset")
+    data = load_dataset("eriktks/conll2000", split="train", trust_remote_code=True)
+    # manually create a validation split
+    split = data.train_test_split(test_size = 0.1, seed = 42)
+    train = split["train"]
+    val = split["test"]
+    test = load_dataset("eriktks/conll2000", split="test", trust_remote_code=True)
+    def gen_chunking(OUTPUT_PATH, data):
+        excerpt_counter = 0
+        tag_names = data.features['chunk_tags'].feature.names
+        excerpt_count = 0
+        with open (OUTPUT_PATH, 'w', encoding = 'utf-8') as fout:
+            for example in data:
+                tokens = example['tokens']
+                source = ' '.join(tokens)
+                tags = [tag_names[tag] for tag in example['chunk_tags']]
+                
+                target_string = " ".join(tags)
+                json.dump({'source': source, 'target': target_string}, fout, ensure_ascii=False)
+                fout.write('\n')
+                excerpt_count += 1
+        print(f"prepared from {excerpt_count} excerpts from {OUTPUT_PATH} dataset")
+    gen_chunking(OUTPUT_PATH+"_train.jsonl", train)
+    gen_chunking(OUTPUT_PATH+"_val.jsonl", val)
+    gen_chunking(OUTPUT_PATH+"_test.jsonl", test)
+    print("prepared three splits")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -318,16 +357,16 @@ if __name__ == "__main__":
     if args.dataset_name == "wikipedia":
         generate_punctuation_restoration_data()
     elif args.dataset_name == "conll2003": # for NER
-        generate_conll03_data("conll2003_data.jsonl")
+        generate_conll03_data("conll2003")
     elif args.dataset_name == "conll2004": # for RE
-        generate_conll04_data("conll2004_data.jsonl")
+        generate_conll04_data("conll2004")
     elif args.dataset_name == "TACRED": # for RE
         generate_TACRED_data("TACRED_data.jsonl")
     elif args.dataset_name == "GENIA": # for NER 
-        generate_GENIA_data("GENIA_data.jsonl")
+        generate_GENIA_data("GENIA")
     elif args.dataset_name == "ontonotes": # for NER
-        generate_ontonotes_data("ontonotes_data.jsonl")
+        generate_ontonotes_data("ontonotes")
     elif args.dataset_name == "conll2000": # for chunking
-        generate_conll00_data("conll2000_data.jsonl")
+        generate_conll00_data("conll2000")
     else:
         print(f"missing data for {args.dataset_name}:")

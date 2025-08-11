@@ -86,6 +86,7 @@ Generation result cache files are under `outputs/generated/`.
 Optional arguments: 
 
 - `-d`: path to a JSONL file containing evaluation data. By default, a file associated with the task is used. 
+- `--max-seq-len`: max token length in a sequence. 
 - `--strict`: use a stricter evaluation metric dependent on the task. Might not always have an effect. 
 
 ### Logs

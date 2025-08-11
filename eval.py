@@ -143,6 +143,13 @@ if __name__ == '__main__':
             """,
     )
     parser.add_argument(
+        '--max-seq-len',
+        type = int, default = 512,
+        help = """
+            Max token length in a sequence.
+            """
+    )
+    parser.add_argument(
         '-n', '--model-name',
         type = str, required = True,
         help = 'Name the model that will be evaluated, to be used in result printing. '
@@ -155,9 +162,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     run(
-        task = args.task,
-        model_name = args.model_name,
-        ckpt_path = args.ckpt,
-        data_path = args.dataset_jsonl,
-        strict = args.strict,
+        task = logger.passthru(args.task, 'task'),
+        model_name = logger.passthru(args.model_name, 'model name'),
+        ckpt_path = logger.passthru(args.ckpt, 'checkpoint path'),
+        data_path = logger.passthru(args.dataset_jsonl, 'dataset jsonl'),
+        strict = logger.passthru(args.strict, 'strict metric'),
+        max_seq_length = logger.passthru(args.max_seq_len, 'max sequence length'),
     )

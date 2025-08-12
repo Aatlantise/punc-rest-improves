@@ -14,7 +14,10 @@ such as named entity recognition, open information extraction, and semantic role
 
 Run a file under `data/` to generate training data using the specific dataset. 
 Shared-task datasets' files will generate a separate JSONL file for each implemented task. 
-JSONL files are under `outputs/datasets/`. 
+
+These JSONL files are under `outputs/datasets/`. If a dataset is not passed in when running a train/eval command, 
+the code will look for one here. 
+As such, if data-prepping is not done the following way, you should use `-d` to pass in a dataset for train/eval. 
 
 For example, the following loads the CoNLL 2003 dataset and generates data for POS and NER. 
 
@@ -24,7 +27,7 @@ python -m data.conll_2003
 
 for now, it is necessary to use the `-m` and run it as a module. 
 
-OIE datasets may require additional local data files. Refer to implementation details. 
+OIE datasets may require additional local data files. Refer to implementation details.
 
 ### Pre-training and Fine-tuning
 

@@ -3,6 +3,7 @@ import logging
 import re
 import sys
 
+from datetime import datetime
 from os.path import join as join_path, isfile as exist_file
 from pprint import pp
 from tqdm import tqdm
@@ -115,6 +116,10 @@ def text_to_triple(outputs, targets):
         target_list.append(sentence_targets)
 
     return output_list, target_list
+
+
+def now() -> str:
+    return datetime.now().strftime("%Y%m%d-%H%M%S")
 
 
 if __name__ == '__main__':

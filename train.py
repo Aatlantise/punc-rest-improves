@@ -7,15 +7,13 @@ import torch
 from argparse import ArgumentParser
 from catalog import get_dataset_path
 from data.modules import TrainData
-from datetime import datetime
 from importlib import import_module
 from lightning import Callback, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
 from models.t5 import PRT5
-from os.path import join as join_paths
 from typing import Callable
-from utils import logger
+from utils import join_path, logger
 
 logger = logger()
 torch.autograd.set_detect_anomaly(True)
@@ -49,8 +47,7 @@ class MyCheckpoint(Callback):
         
         epoch = trainer.current_epoch
         if epoch in self.epochs_to_save_at:
-            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            ckpt_path = join_paths(self.save_dir, '%s-%s-epoch%s.ckpt' % (self.name, timestamp, epoch))
+            ckpt_path = join_path(self.save_dir, '%s%d.ckpt' % (self.name, epoch))
             trainer.save_checkpoint(ckpt_path)
             logger.info('Saved checkpoint at %s' % ckpt_path)
 
@@ -104,15 +101,14 @@ def run(
     model.store_data(training_data)
     logger.info('Initialized model')
     
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     trainer = Trainer(
         min_epochs = min_epochs,
         max_epochs = max_epochs,
-        logger = TensorBoardLogger(save_dir = join_paths(output_dir, 'logs'), name = ckpt_filename),
+        logger = TensorBoardLogger(save_dir = join_path(output_dir, 'logs'), name = ckpt_filename),
         callbacks = [
             ModelCheckpoint(
-                dirpath = join_paths(output_dir, 'checkpoints'),
-                filename = '%s-{epoch}-{val_loss:.4f}-%s' % (ckpt_filename, timestamp),
+                dirpath = join_path(output_dir, 'checkpoints'),
+                filename = '%s-{epoch}-{val_loss:.4f}' % ckpt_filename,
                 save_top_k = save_top_k,
                 verbose = True,
                 monitor = monitor_metric,
@@ -139,7 +135,7 @@ def run(
     
     if save_last_epoch:
         final_ckpt_name = '%s%d.ckpt' % (ckpt_filename, max_epochs)
-        final_save_path = join_paths(output_dir, 'checkpoints', final_ckpt_name)
+        final_save_path = join_path(output_dir, 'checkpoints', final_ckpt_name)
         trainer.save_checkpoint(final_save_path)
         logger.info(f'Saved last epoch: {final_save_path}')
     else:
@@ -187,16 +183,6 @@ if __name__ == '__main__':
             """
     )
     parser.add_argument(
-        '-s', '--epoch-to-save',
-        action = 'append', type = int,
-        help = """
-            An epoch index (STARTS AT 0) to save. Can be provided multiple times.
-
-            For example, `-s 3` will save the fourth epoch.
-            `-s 2 -s 5` will save the third and sixth epochs.
-            """
-    )
-    parser.add_argument(
         '--learning-rate',
         type = float, default = 3e-4,
         help = """
@@ -229,12 +215,22 @@ if __name__ == '__main__':
             """
     )
     parser.add_argument(
+        '-s', '--save-epoch',
+        action = 'append', type = int,
+        help = """
+            An epoch index (STARTS AT 0) to save. Can be provided multiple times.
+
+            For example, `-s 3` will save the fourth epoch.
+            `-s 2 -s 5` will save the third and sixth epochs.
+            """
+    )
+    parser.add_argument(
         '--save-last-epoch',
         action = 'store_true',
         help = 'Save the last epoch of training as a checkpoint.'
     )
     parser.add_argument(
-        '-k', '--save-top-k',
+        '-k', '--save-top-k-epochs',
         type = int, default = '1',
         help = 'Save the top k checkpoints with lowest validation loss.'
     )

@@ -11,7 +11,7 @@ from importlib import import_module
 from lightning import Callback, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
-from models.t5 import PRT5
+from models.t5 import T5
 from typing import Callable
 from utils import join_path, logger
 
@@ -86,7 +86,7 @@ def run(
     training_data = TrainData(data_path)
     logger.info(f'Loaded training data from {data_path}')
     
-    model = PRT5.load_from_checkpoint(resume_ckpt) if resume_ckpt else PRT5(
+    model = T5.load_from_checkpoint(resume_ckpt) if resume_ckpt else T5(
         adam_epsilon = adam_epsilon,
         eval_batch_size = eval_batch_size,
         learning_rate = learning_rate,

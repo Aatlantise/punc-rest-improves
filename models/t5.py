@@ -16,8 +16,7 @@ from utils import logger, progress
 logger = logger(__name__)
 
 
-class PRT5(LightningModule):
-    """PR-T5 model"""
+class T5(LightningModule):
     
     def __init__(
         self,
@@ -89,7 +88,7 @@ class PRT5(LightningModule):
     
     def _verify_data_stored(self):
         if self.training_data is None:
-            raise Exception('PRT5 model has no stored TrainData data. Call .store_data() before using dataloaders!')
+            raise Exception('T5 model has no stored TrainData data. Call .store_data() before using dataloaders!')
         
     def _generic_dataloader(self, split: str) -> DataLoader:
         self._verify_data_stored()

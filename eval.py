@@ -5,7 +5,7 @@ from catalog import get_dataset_path
 from data.modules import TrainData
 from importlib import import_module
 from tasks.ner import score as object_generation_score
-from train import PRT5
+from train import T5
 from utils import logger, clean_split, exist_file
 
 logger = logger(__name__)
@@ -72,7 +72,7 @@ def run(
                 targets.append(obj['target'])
     else:
         logger.info(f'Loading model {model_name} from checkpoint {ckpt_path}')
-        model = PRT5.load_from_checkpoint(ckpt_path)
+        model = T5.load_from_checkpoint(ckpt_path)
         
         logger.info(f'Loading dataset from path {data_path}')
         data_path = data_path or get_dataset_path(task)

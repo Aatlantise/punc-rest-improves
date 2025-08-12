@@ -36,13 +36,13 @@ class MyCheckpoint(Callback):
         epochs_to_save_at: list[int],
         save_dir: str = 'outputs/checkpoints',
         name: str = 'indiv-ckpt',
-        eval_metric: Callable[[list[str], list[str], list[str]], tuple[float, float, float]] = None,
+        validation_eval_metric: Callable[[list[str], list[str], list[str]], tuple[float, float, float]] = None,
     ):
         super().__init__()
         self.epochs_to_save_at = epochs_to_save_at or []
         self.save_dir = save_dir
         self.name = name
-        self.eval_metric = eval_metric
+        self.eval_metric = validation_eval_metric
 
     def on_train_epoch_end(self, trainer, pl_module):
         pl_module.test(self.eval_metric)
@@ -80,7 +80,7 @@ def run(
     train_batch_size: int = 32,
     warmup_steps: int = 0,
     weight_decay: float = 0.01,
-    eval_metric = None,
+    validation_eval_metric = None,
 ):
     """Run training on data path"""
     torch.set_float32_matmul_precision('medium')
@@ -122,7 +122,7 @@ def run(
             MyCheckpoint(
                 epochs_to_save_at = epochs_to_save,
                 name = ckpt_filename,
-                eval_metric = eval_metric
+                validation_eval_metric = validation_eval_metric
             ),
         ],
         precision = precision,
@@ -255,11 +255,13 @@ if __name__ == '__main__':
     else:
         raise SyntaxError(f'Option -e/--epoch received invalid argument "{args.epochs}"')
     
-    eval_metric = None
-    try:
-        eval_metric = import_module('tasks.' + args.task).score
-    except:
-        logger.warning(f'Eval metric for task {args.task} not found.')
+    validation_eval_metric = None
+    if args.task not in ['pr', 'mlm']:
+        # only evaluate during validation for fine-tuning
+        try:
+            validation_eval_metric = import_module('tasks.' + args.task).score
+        except:
+            logger.warning(f'Eval metric for task {args.task} not found.')
     
     logger.passthru(args.task, 'task')
     run(
@@ -274,5 +276,5 @@ if __name__ == '__main__':
         save_top_k = logger.passthru(args.save_top_k, 'save top k'),
         seed = logger.passthru(args.seed, 'seed'),
         learning_rate = logger.passthru(args.learning_rate, 'learning rate'),
-        eval_metric = logger.passthru(eval_metric, 'evaluation metric'),
+        validation_eval_metric = logger.passthru(validation_eval_metric, 'validation evaluation metric'),
     )

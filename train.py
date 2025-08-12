@@ -15,7 +15,7 @@ from models.t5 import PRT5
 from typing import Callable
 from utils import join_path, logger
 
-logger = logger()
+logger = logger(__name__)
 torch.autograd.set_detect_anomaly(True)
 
 

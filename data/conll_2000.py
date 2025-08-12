@@ -1,7 +1,7 @@
 from data.modules import PrepData
 from utils import logger, pp
 
-logger = logger()
+logger = logger(__name__)
 
 
 class CoNLL2000(PrepData):

@@ -13,7 +13,7 @@ from transformers import (
 from typing import Callable, Union
 from utils import logger, progress
 
-logger = logger()
+logger = logger(__name__)
 
 
 class PRT5(LightningModule):

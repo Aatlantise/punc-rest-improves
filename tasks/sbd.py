@@ -1,6 +1,6 @@
 from utils import logger
 
-logger = logger()
+logger = logger(__name__)
 
 
 def score(texts, outputs, targets, printer = print):

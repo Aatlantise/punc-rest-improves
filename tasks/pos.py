@@ -1,6 +1,6 @@
 from utils import list_hamming_dist, prf1, logger
 
-logger = logger()
+logger = logger(__name__)
 
 
 def score(texts: list[str], outputs: list[str], targets: list[str], strict = False) -> tuple[float, float, float]:

@@ -46,7 +46,7 @@ def prf1(num_correct: int, num_attempted: int, num_gold: int) -> tuple[float, fl
 
 
 def logger(name: str = None):
-    l = logging.getLogger(name or __name__)
+    l = logging.getLogger(name)
     def passthru(self, v, n: str):
         self.debug(f"Assigned {n} to {v}")
         return v

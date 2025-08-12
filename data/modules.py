@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from typing import Generator
 from utils import logger
 
-logger = logger()
+logger = logger(__name__)
 
 
 class PrepData:

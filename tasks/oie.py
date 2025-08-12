@@ -2,7 +2,7 @@ import re
 
 from utils import prf1, logger, getstr_safe, text_to_triple
 
-logger = logger()
+logger = logger(__name__)
 
 
 def oie_dict_count(a: dict[str, dict[str, set[str]]]) -> int:

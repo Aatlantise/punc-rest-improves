@@ -2,7 +2,7 @@ import re
 
 from utils import multiset_intersection, prf1, logger
 
-logger = logger()
+logger = logger(__name__)
 
 
 def seq_to_struct_lax(s: str) -> set[tuple[str, str]]:

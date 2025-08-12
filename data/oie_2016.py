@@ -4,7 +4,7 @@ from data.modules import PrepData
 from tasks.oie import normalize_quotes
 from utils import logger
 
-logger = logger()
+logger = logger(__name__)
 
 
 class OIE2016(PrepData):

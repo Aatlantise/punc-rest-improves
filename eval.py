@@ -8,7 +8,7 @@ from tasks.ner import score as object_generation_score
 from train import PRT5
 from utils import logger, clean_split, exist_file
 
-logger = logger()
+logger = logger(__name__)
 
 
 def multitask_score(texts, outputs, targets, printer = print):

@@ -2,7 +2,7 @@ from data.modules import PrepData
 from tasks.ner import process
 from utils import logger
 
-logger = logger()
+logger = logger(__name__)
 
 
 class OntoNotes5(PrepData):

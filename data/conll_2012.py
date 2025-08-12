@@ -1,7 +1,7 @@
 from data.modules import PrepData
 from utils import logger
 
-logger = logger()
+logger = logger(__name__)
 
 def remove_bio_prefixes(label: str) -> str:
     if len(label) < 2 or label[1] != '-':

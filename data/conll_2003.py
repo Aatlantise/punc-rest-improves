@@ -2,7 +2,7 @@ from data.modules import PrepData
 from tasks.ner import process as ner_process
 from utils import logger
 
-logger = logger()
+logger = logger(__name__)
 
 
 class CoNLL2003(PrepData):

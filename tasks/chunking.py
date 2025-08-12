@@ -1,6 +1,6 @@
 from utils import logger, prf1
 
-logger = logger()
+logger = logger(__name__)
 
 
 def score(texts, outputs, targets, strict = False, printer = print):

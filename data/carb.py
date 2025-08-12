@@ -1,6 +1,7 @@
 import sys
 
 from data.modules import PrepData
+from tasks.oie import normalize_quotes
 from utils import logger
 
 logger = logger()
@@ -23,21 +24,19 @@ class CaRB(PrepData):
 
     def src_tgt_pairs(self, task: str):
         if task not in ['oie']: raise NotImplementedError(task)
-        last_sentence, target = None, None
+        last_sentence, target = None, []
         for example in self.data:
-            parts = example.split('\t')
+            parts = normalize_quotes(example).split('\t')
             sentence, rest = parts[0], parts[1:]
             if not sentence[0].isalnum(): continue
             if not len(rest) >= 2: continue
             
-            # only include subject, verb, and object
-            # sometimes the object position will have a complement or a modifier instead. ignoring this for now
-            segment = f'({rest[1].strip()}; {rest[0].strip()};{" " + rest[2].strip() if len(rest) >= 3 else ""}) '
+            segment = ' ; '.join([w.strip() for w in rest])
             if sentence == last_sentence:
-                target += segment
+                target.append(segment)
             else:
-                if last_sentence: yield last_sentence, target.rstrip()
-                last_sentence, target = sentence, segment
+                if last_sentence: yield last_sentence, ' <info_sep> '.join(target)
+                last_sentence, target = sentence, [segment]
                 
 
 if __name__ == '__main__':

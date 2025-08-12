@@ -19,6 +19,12 @@ def oie_dict_intersection(a: dict[str, dict[str, set[str]]], b: dict[str, dict[s
         for k2 in a[k1].keys() & b[k1].keys():
             counter += len(a[k1][k2] & b[k1][k2])
     return counter
+
+
+def normalize_quotes(text: str) -> str:
+    text = re.sub(r"``", '"', text)
+    text = re.sub(r"''", '"', text)
+    return text
     
 
 def unserialize(example: str, strict: bool) -> dict[str, dict[str, set[str]]]:

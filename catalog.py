@@ -11,13 +11,13 @@ catalog = {
     'pr': {
         'default': 'wiki',
         'ds': {
-            'wiki': 'wiki-20231101-pr.jsonl',
+            'wiki': 'wiki-20231101.en-pr.jsonl',
         },
     },
     'mlm': {
         'default': 'wiki',
         'ds': {
-            'wiki': 'wiki-20231101-mlm.jsonl',
+            'wiki': 'wiki-20231101.en-mlm.jsonl',
         },
     },
     'ner': {
@@ -56,10 +56,14 @@ catalog = {
     }
 }
 
-def get_dataset_path(task: str, dataset_dir: str = 'outputs/datasets'):
+def get_dataset_path(
+    task: str,
+    ds_name: str = None,
+    dataset_dir: str = 'outputs/datasets'
+):
     if task not in catalog.keys():
         raise NotImplementedError(task)
     task_obj = catalog[task]
     task_datasets = task_obj['ds']
-    default_file = task_datasets[task_obj['default']]
-    return join_path(dataset_dir, default_file)
+    filename = task_datasets[ds_name or task_obj['default']]
+    return join_path(dataset_dir, filename)

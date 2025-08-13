@@ -165,10 +165,12 @@ if __name__ == '__main__':
             """
     )
     parser.add_argument(
-        '-d', '--dataset-jsonl',
+        '-d', '--dataset',
         type = str,
         help = """
-            A jsonl file containing training data.
+            A jsonl file containing training data,
+            or a name of a dataset specified in the catalog.
+            
             If left unprovided, a corresponding default jsonl will be used.
             """,
     )
@@ -258,10 +260,16 @@ if __name__ == '__main__':
             validation_eval_metric = import_module('tasks.' + args.task).score
         except:
             logger.warning(f'Eval metric for task {args.task} not found.')
+            
+    ds = args.dataset
+    if not ds:
+        ds = get_dataset_path(args.task)
+    elif '.' not in ds:
+        ds = get_dataset_path(args.task, ds_name = ds)
     
     logger.passthru(args.task, 'task')
     run(
-        data_path = logger.passthru(args.dataset_jsonl or get_dataset_path(args.task), 'data path'),
+        data_path = logger.passthru(ds, 'data path'),
         resume_ckpt = logger.passthru(args.resume_ckpt, 'resume checkpoint path'),
         ckpt_filename = logger.passthru(args.ckpt_name, 'checkpoint filename'),
         epochs_to_save = logger.passthru(args.save_epoch, 'epochs to save'),

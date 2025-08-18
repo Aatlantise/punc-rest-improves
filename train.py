@@ -43,7 +43,8 @@ class MyCheckpoint(Callback):
         self.eval_metric = validation_eval_metric
 
     def on_train_epoch_end(self, trainer, pl_module):
-        pl_module.test(self.eval_metric)
+        if self.eval_metric:
+            pl_module.test(self.eval_metric)
         
         epoch = trainer.current_epoch
         if epoch in self.epochs_to_save_at:
@@ -241,6 +242,11 @@ if __name__ == '__main__':
         type = int, default = 42,
         help = 'Random seed for reproducibility. '
     )
+    parser.add_argument(
+        '--validation-eval',
+        action = 'store_true',
+        help = 'Evaluate checkpoints on validation steps.  '
+    )
     args = parser.parse_args()
 
     min_epochs, max_epochs = 0, 0
@@ -254,7 +260,7 @@ if __name__ == '__main__':
         raise SyntaxError(f'Option -e/--epoch received invalid argument "{args.epochs}"')
     
     validation_eval_metric = None
-    if args.task not in ['pr', 'mlm']:
+    if args.validation_eval and args.task not in ['mlm']:
         # only evaluate during validation for fine-tuning
         try:
             validation_eval_metric = import_module('tasks.' + args.task).score

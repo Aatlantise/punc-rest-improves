@@ -2,8 +2,8 @@ from utils import logger
 from datasets import load_dataset
 import json
 
+# call: python -m data.CoLA
 logger = logger()
-print("hello world")
 
 def generate_cola():
     cola_train = load_dataset("glue", "cola", split="train")
@@ -15,7 +15,7 @@ def generate_cola():
     for outputPath in splits:
         excerpt_count = 0
         print("preparing", outputPath)
-        with open(f"{outputPath}.jsonl", 'w', encoding='utf-8') as fout:
+        with open(f"outputs/datasets/{outputPath}.jsonl", 'w', encoding='utf-8') as fout:
             for example in myMap[outputPath]:
                 # Note that the test set does not have labels and it's all -1
                 text = example["sentence"]

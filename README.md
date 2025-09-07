@@ -46,6 +46,8 @@ where `TASK` is one of
 and `CKPT_NAME` is a string that will be prefixed to the generating checkpoint. 
 Checkpoints are under `outputs/checkpoints/`. 
 
+Additional tasks include single-sentence tasks, similarity and paraphrase tasks and inference tasks that are part of the GLUE dataset
+
 Optional arguments: 
 
 - `-d`: path to a JSONL file containing training data. By default, a file associated with the task is used. 

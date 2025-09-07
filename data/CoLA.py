@@ -5,6 +5,7 @@ import json
 # call: python -m data.CoLA
 logger = logger()
 
+#acceptability of sentences
 def generate_cola():
     cola_train = load_dataset("glue", "cola", split="train")
     cola_dev = load_dataset("glue", "cola", split="validation")

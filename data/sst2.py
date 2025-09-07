@@ -2,16 +2,15 @@ from utils import logger
 from datasets import load_dataset
 import json
 
-# call: python -m data.CoLA
+# call: python -m data.sst2
 logger = logger()
-
-def generate_cola():
-    cola_train = load_dataset("glue", "cola", split="train")
-    cola_dev = load_dataset("glue", "cola", split="validation")
-    cola_test = load_dataset("glue", "cola", split="test")
-    splits = ["cola_train", "cola_dev", "cola_test"]
-    myMap = {"cola_train": cola_train, "cola_dev": cola_dev, "cola_test": cola_test}
-    labelMap = {"-1": "missing", "0": "unacceptable", "1": "acceptable"}
+#sentiment on movie reviews
+def generate_sst2():
+    sst2_train = load_dataset("glue", "sst2", split="train")
+    sst2_dev = load_dataset("glue", "sst2", split="validation")
+    sst2_test = load_dataset("glue", "sst2", split="test")
+    splits = ["sst2_train", "sst2_dev", "sst2_test"]
+    myMap = {"sst2_train": sst2_train, "sst2_dev": sst2_dev, "sst2_test": sst2_test}
     for outputPath in splits:
         excerpt_count = 0
         print("preparing", outputPath)
@@ -27,5 +26,5 @@ def generate_cola():
         print(f"prepared from {excerpt_count} excerpts for {outputPath}")
 
 if __name__ == "__main__":
-    print("cola dataset \n")
-    generate_cola()
+    print("sst2 dataset \n")
+    generate_sst2()

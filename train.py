@@ -213,8 +213,18 @@ if __name__ == '__main__':
         'chunking': 'outputs/datasets/conll-2000-chunking.jsonl',
         're': 'outputs/datasets/conll-2004-re.jsonl',
         'ner': 'outputs/datasets/conll-2003-ner.jsonl',
+        'glue_CoLA': 'outputs/datasets/cola_train.jsonl',
+        'glue_sst2': 'outputs/datasets/sst2_train.jsonl',
+        'glue_mrpc': 'outputs/datasets/mrpc_train.jsonl',
+        'glue_stsb': 'outputs/datasets/stsb_train.jsonl',
+        'glue_qqp': 'outputs/datasets/qqp_train.jsonl',
+        'glue_mnli': 'outputs/datasets/mnli_train.jsonl',
+        'glue_qnli': 'outputs/datasets/qnli_train.jsonl',
+        'glue_rte': 'outputs/datasets/rte_train.jsonl',
+        'glue_wnli': 'outputs/datasets/wnli_train.jsonl',
     }
-    default_pr_ckpt = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt'
+    # default_pr_ckpt = 'outputs/checkpoints/pr.20250717-161054.epoch=1-val_loss=0.1053.ckpt'
+    default_pr_ckpt = 'outputs/checkpoints/T5PR1e4LR.20250823-112452.epoch=1-val_loss=0.1037.ckpt'
     
     if not args.dataset_jsonl and args.task not in default_data_paths.keys():
         raise NotImplementedError(args.task)

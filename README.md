@@ -42,6 +42,16 @@ where `TASK` is one of
 - `pr`: Punctuation Restoration
 - `re`: Relation Extraction
 - `srl`: Semantic Role Labelling
+Or one of the following GLUE tasks
+- `glue_CoLA`: acceptability
+- `glue_sst2`: sentiment
+- `glue_mrpc`: paraphrase
+- `glue_stsb`: sentence similarity
+- `glue_qqp`: paraphrase
+- `glue_mnli`: NLI
+- `glue_qnli`: QA/NLI
+- `glue_rte`: NLI
+- `glue_wnli`: coreference/NLI
 
 and `CKPT_NAME` is a string that will be prefixed to the generating checkpoint. 
 Checkpoints are under `outputs/checkpoints/`. 

@@ -12,6 +12,7 @@ def generate_rte():
     rte_test = load_dataset("glue", "rte", split="test")
     splits = ["rte_train", "rte_dev", "rte_test"]
     myMap = {"rte_train": rte_train, "rte_dev": rte_dev, "rte_test": rte_test}
+    myDict = {0: "entailment", 1: "not_entailment"}
     for outputPath in splits:
         excerpt_count = 0
         print("preparing", outputPath)
@@ -21,7 +22,8 @@ def generate_rte():
                 text1 = example["sentence1"]
                 text2 = example["sentence2"]
                 label = example["label"]
-                json.dump({'source': "(" + text1 + ") (" + text2 + ")", 'target': str(label)}, fout, ensure_ascii=False)
+                target = myDict[label] if label in myDict else "missing"
+                json.dump({'source': "(" + text1 + ") (" + text2 + ")", 'target': target}, fout, ensure_ascii=False)
                 fout.write('\n')
 
                 excerpt_count += 1

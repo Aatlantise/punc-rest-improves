@@ -12,6 +12,7 @@ def generate_qnli():
     qnli_test = load_dataset("glue", "qnli", split="test")
     splits = ["qnli_train", "qnli_dev", "qnli_test"]
     myMap = {"qnli_train": qnli_train, "qnli_dev": qnli_dev, "qnli_test": qnli_test}
+    myDict = {0: "entailment", 1: "not_entailment"}
     for outputPath in splits:
         excerpt_count = 0
         print("preparing", outputPath)
@@ -21,7 +22,8 @@ def generate_qnli():
                 text1 = example["question"]
                 text2 = example["sentence"]
                 label = example["label"]
-                json.dump({'source': "(" + text1 + ") (" + text2 + ")", 'target': str(label)}, fout, ensure_ascii=False)
+                target = myDict[label] if label in myDict else "missing"
+                json.dump({'source': "(" + text1 + ") (" + text2 + ")", 'target': target}, fout, ensure_ascii=False)
                 fout.write('\n')
 
                 excerpt_count += 1

@@ -12,6 +12,7 @@ def generate_qqp():
     qqp_test = load_dataset("glue", "qqp", split="test")
     splits = ["qqp_train", "qqp_dev", "qqp_test"]
     myMap = {"qqp_train": qqp_train, "qqp_dev": qqp_dev, "qqp_test": qqp_test}
+    myDict = {0: "not_duplicate", 1: "duplicate"}
     for outputPath in splits:
         excerpt_count = 0
         print("preparing", outputPath)
@@ -21,7 +22,8 @@ def generate_qqp():
                 text1 = example["question1"]
                 text2 = example["question2"]
                 label = example["label"]
-                json.dump({'source': "(" + text1 + ") (" + text2 + ")", 'target': str(label)}, fout, ensure_ascii=False)
+                target = myDict[label] if label in myDict else "missing"
+                json.dump({'source': "(" + text1 + ") (" + text2 + ")", 'target': target}, fout, ensure_ascii=False)
                 fout.write('\n')
 
                 excerpt_count += 1

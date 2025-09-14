@@ -11,6 +11,7 @@ def generate_sst2():
     sst2_test = load_dataset("glue", "sst2", split="test")
     splits = ["sst2_train", "sst2_dev", "sst2_test"]
     myMap = {"sst2_train": sst2_train, "sst2_dev": sst2_dev, "sst2_test": sst2_test}
+    myDict = {0: "negative", 1: "positive"}
     for outputPath in splits:
         excerpt_count = 0
         print("preparing", outputPath)
@@ -19,7 +20,8 @@ def generate_sst2():
                 # Note that the test set does not have labels and it's all -1
                 text = example["sentence"]
                 label = example["label"]
-                json.dump({'source': text, 'target': str(label)}, fout, ensure_ascii=False)
+                target = myDict[label] if label in myDict else "missing"
+                json.dump({'source': text, 'target': target}, fout, ensure_ascii=False)
                 fout.write('\n')
 
                 excerpt_count += 1

@@ -12,6 +12,7 @@ def generate_wnli():
     wnli_test = load_dataset("glue", "wnli", split="test")
     splits = ["wnli_train", "wnli_dev", "wnli_test"]
     myMap = {"wnli_train": wnli_train, "wnli_dev": wnli_dev, "wnli_test": wnli_test}
+    myDict = {0: "not_entailment", 1: "entailment"}
     for outputPath in splits:
         excerpt_count = 0
         print("preparing", outputPath)
@@ -21,7 +22,8 @@ def generate_wnli():
                 text1 = example["sentence1"]
                 text2 = example["sentence2"]
                 label = example["label"]
-                json.dump({'source': "(" + text1 + ") (" + text2 + ")", 'target': str(label)}, fout, ensure_ascii=False)
+                target = myDict[label] if label in myDict else "missing"
+                json.dump({'source': "(" + text1 + ") (" + text2 + ")", 'target': target}, fout, ensure_ascii=False)
                 fout.write('\n')
 
                 excerpt_count += 1

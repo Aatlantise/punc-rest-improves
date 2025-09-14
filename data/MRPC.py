@@ -12,6 +12,7 @@ def generate_mrpc():
     mrpc_test = load_dataset("glue", "mrpc", split="test")
     splits = ["mrpc_train", "mrpc_dev", "mrpc_test"]
     myMap = {"mrpc_train": mrpc_train, "mrpc_dev": mrpc_dev, "mrpc_test": mrpc_test}
+    myDict = {0: "not_equivalent", 1: "equivalent"}
     for outputPath in splits:
         excerpt_count = 0
         print("preparing", outputPath)
@@ -21,7 +22,8 @@ def generate_mrpc():
                 text1 = example["sentence1"]
                 text2 = example["sentence2"]
                 label = example["label"]
-                json.dump({'source': "(" + text1 + ") (" + text2 + ")", 'target': str(label)}, fout, ensure_ascii=False)
+                target = myDict[label] if label in myDict else "missing"
+                json.dump({'source': "(" + text1 + ") (" + text2 + ")", 'target': target}, fout, ensure_ascii=False)
                 fout.write('\n')
 
                 excerpt_count += 1

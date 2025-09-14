@@ -21,7 +21,8 @@ def generate_cola():
                 # Note that the test set does not have labels and it's all -1
                 text = example["sentence"]
                 label = example["label"]
-                json.dump({'source': text, 'target': str(label)}, fout, ensure_ascii=False)
+                target = labelMap[str(label)] if str(label) in labelMap else "missing"
+                json.dump({'source': text, 'target': target}, fout, ensure_ascii=False)
                 fout.write('\n')
 
                 excerpt_count += 1

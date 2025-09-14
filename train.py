@@ -249,7 +249,7 @@ if __name__ == '__main__':
     
     run(
         data_path = args.dataset_jsonl or default_data_paths[args.task],
-        resume_ckpt = args.resume_ckpt or default_pr_ckpt if args.task not in ['pr', 'mlm'] else None,
+        resume_ckpt = args.resume_ckpt,
         ckpt_filename = args.ckpt_name,
         epochs_to_save = args.epoch_to_save,
         save_last_epoch = args.save_last_epoch,

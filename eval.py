@@ -122,15 +122,24 @@ def run(
                 f.write('\n')
     
     logger.info(f'Evaluating {task} score.')
-    p, r, f1 = import_module('tasks.' + task).score(texts, outputs, targets, strict = strict)
-    print(
-        f"""
-        =============== Evaluation Result ===============
-        Precision: {p},
-        Recall: {r},
-        F1: {f1},
-        """
-    )
+    if task in ['glue_CoLA', 'glue_sst2', 'glue_mrpc', 'glue_stsb', 'glue_qqp', 'glue_mnli', 'glue_qnli', 'glue_rte', 'glue_wnli']:
+        acc = import_module('tasks.' + task).score(texts, outputs, targets)
+        print(
+            f"""
+            =============== Evaluation Result ===============
+            Accuracy: {acc}
+            """
+        )
+    else:
+        p, r, f1 = import_module('tasks.' + task).score(texts, outputs, targets, strict = strict)
+        print(
+            f"""
+            =============== Evaluation Result ===============
+            Precision: {p},
+            Recall: {r},
+            F1: {f1},
+            """
+        )
 
 
 if __name__ == '__main__':

@@ -55,7 +55,9 @@ def run(
     num_workers: int = 4,
     strict: bool = True,
 ):
-    if task not in ['srl', 'pos', 'oie', 'ner', 're', 'chunking', 'pr', 'sbd']:
+    if task not in ['srl', 'pos', 'oie', 'ner', 're', 'chunking', 'pr', 'sbd',
+                    'glue_CoLA', 'glue_sst2', 'glue_mrpc', 'glue_stsb', 'glue_qqp',
+                    'glue_mnli', 'glue_qnli', 'glue_rte', 'glue_wnli']:
         raise NotImplementedError(task)
     
     print(f"=============== Model {model_name} {task} Evaluation ===============")
@@ -70,6 +72,15 @@ def run(
         'chunking': 'outputs/datasets/conll-2000-chunking.jsonl',
         're': 'outputs/datasets/conll-2004-re.jsonl',
         'ner': 'outputs/datasets/conll-2003-ner.jsonl',
+        'glue_CoLA': 'outputs/datasets/cola_train.jsonl',
+        'glue_sst2': 'outputs/datasets/sst2_train.jsonl',
+        'glue_mrpc': 'outputs/datasets/mrpc_train.jsonl',
+        'glue_stsb': 'outputs/datasets/stsb_train.jsonl',
+        'glue_qqp': 'outputs/datasets/qqp_train.jsonl',
+        'glue_mnli': 'outputs/datasets/mnli_train.jsonl',
+        'glue_qnli': 'outputs/datasets/qnli_train.jsonl',
+        'glue_rte': 'outputs/datasets/rte_train.jsonl',
+        'glue_wnli': 'outputs/datasets/wnli_train.jsonl',
     }
     
     texts, outputs, targets = [], [], []

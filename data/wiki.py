@@ -1,4 +1,3 @@
-import nltk
 import random
 import re
 
@@ -78,28 +77,51 @@ class Wiki2023(PrepData):
                 text = article.get("text", "")
                 if not text or len(text) < 200:
                     continue
-                    
+
                 text = remove_reference_tags(text)
                 text = sent_tokenize(text)
                 for chunk in chunk_sentences(text, max_words = MAX_WORDS):
                     target = chunk.strip()
-                    
+
                     if task == 'pr':
                         yield normalize_text(target), target
                     elif task == 'mlm':
                         yield mask_text(chunk.strip())
                     else:
                         raise NotImplementedError(f'Task {task} not implemented. ')
-                    
+
                     excerpt_count += 1
                     if excerpt_count >= MAX_EXCERPTS:
                         return
+    
+    def save_raw(self, path: str, max_lines: int = 500):
+        counter = 0
+        with open(path, 'w') as f:
+            for _, split in self.data.items():
+                for article in progress(split, 'Wikipedia'):
+                    text = article.get("text", "")
+                    if not text or len(text) < 200:
+                        continue
+                        
+                    f.write(text)
+                    f.write('\n')
+
+                    # text = sent_tokenize(text)
+                    # for chunk in chunk_sentences(text, max_words = MAX_WORDS):
+                    #     f.write(chunk.strip())
+                    #     f.write('\n')
+                
+                    counter += 1
+                    if counter >= max_lines:
+                        return
+    
 
 
 if __name__ == "__main__":
-    nltk.download('punkt')
-    nltk.download('punkt_tab')
-    random.seed(42)
+    # nltk.download('punkt')
+    # nltk.download('punkt_tab')
+    # random.seed(42)
     ds = Wiki2023()
-    ds.to_json('pr', 'wiki-20231101.en-pr')
-    ds.to_json('mlm', 'wiki-20231101.en-mlm')
+    ds.save_raw('top-500-article.txt')
+    # ds.to_json('pr', 'wiki-20231101.en-pr')
+    # ds.to_json('mlm', 'wiki-20231101.en-mlm')

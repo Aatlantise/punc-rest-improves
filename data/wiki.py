@@ -83,21 +83,17 @@ def post_process(s: str) -> str:
 
 def cleaned(lines: list[str]) -> list[str]:
     """Cleans wikipedia text"""
-    counter = 0
     picked_lines = []
-    for long_lines in progress(lines, 'Picking Lines'):
+    for long_lines in lines:
         for l in long_lines.split('\n'):
-            counter += 1
             if re.match(r'\s[,.;]\s', l):
                 continue  # bad sentence, missing words
             elif is_like_sentence(l):
                 picked_lines.append(l)
-    logger.debug('Picked %d lines out of %d' % (len(lines), counter))
     
-    counter = 0
     last_sentence = ''
     cleaned_lines = []
-    for l in progress(picked_lines, 'Cleaning Lines'):
+    for l in picked_lines:
         l = pre_process(l)
         first, _ = bookending_chars(l)
         if first == '':
@@ -111,10 +107,9 @@ def cleaned(lines: list[str]) -> list[str]:
         else:
             final = post_process(last_sentence).strip()
             cleaned_lines.append(final + '\n')
-            counter += 1
             last_sentence = l
-    logger.debug('Wrote %s lines' % counter)
-    
+            
+    logger.debug('Cleaning lines... Batch has %d -> 1st round %d -> 2nd round %d' % (len(lines), len(picked_lines), len(cleaned_lines)))
     return cleaned_lines
 
 
@@ -177,7 +172,7 @@ class Wiki2023(PrepData):
             name = '20231101.en',
         )
     
-    def rations(self, size: int = 10000):
+    def rations(self, size: int = 5000):
         """Yields `size` lines from the source each time"""
         ration = []
         for _, split in self.data.items():
@@ -186,30 +181,29 @@ class Wiki2023(PrepData):
                 if not text or len(text) < 200:
                     continue
                 for line in text.split('\n'):
+                    ration.append(line)
                     if len(ration) >= size:
                         yield cleaned(ration)
                         ration.clear()
-                    ration.append(line)
         return
 
     def src_tgt_pairs(self, task):
         excerpt_count = 0
         for ration in self.rations():
-            for line in ration:
-                line = sent_tokenize(line)
-                for chunk in chunk_sentences(line, max_words = MAX_WORDS):
-                    target = chunk.strip()
+            line = sent_tokenize(''.join(ration))
+            for chunk in chunk_sentences(line, max_words = MAX_WORDS):
+                target = chunk.strip()
 
-                    if task == 'pr':
-                        yield normalize_text(target), target
-                    elif task == 'mlm':
-                        yield mask_text(chunk.strip())
-                    else:
-                        raise NotImplementedError(f'Task {task} not implemented. ')
+                if task == 'pr':
+                    yield normalize_text(target), target
+                elif task == 'mlm':
+                    yield mask_text(chunk.strip())
+                else:
+                    raise NotImplementedError(f'Task {task} not implemented. ')
 
-                    excerpt_count += 1
-                    if excerpt_count >= MAX_EXCERPTS:
-                        return
+                excerpt_count += 1
+                if excerpt_count >= MAX_EXCERPTS:
+                    return
 
 
 if __name__ == "__main__":

@@ -14,13 +14,13 @@ class PrepData:
     Subclasses should implement `src_tgt_pairs`
     """
 
-    def __init__(self, hf_dataset: bool = True, **kwargs) -> None:
+    def __init__(self, *args, hf_dataset: bool = True, **kwargs) -> None:
         """Loads dataset form hugging face"""
         if hf_dataset:
-            self.data = load_dataset(trust_remote_code = True, **kwargs)
+            self.data = load_dataset(*args, trust_remote_code = True, **kwargs)
         else:
             self.data = []
-
+    
     def src_tgt_pairs(self, task: str) -> Generator[tuple[str, str], None, None]:
         """A generator function of source-target pairs as examples of training data"""
         pass

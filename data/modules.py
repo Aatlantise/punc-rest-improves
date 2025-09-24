@@ -14,11 +14,11 @@ class PrepData:
     Subclasses should implement `src_tgt_pairs`
     """
 
-    def __init__(self, hf_dataset: bool = True, **kwargs) -> None:
+    def __init__(self, *args, hf_dataset: bool = True, **kwargs) -> None:
         """Loads dataset form hugging face"""
         self.hf_dataset = hf_dataset
         if hf_dataset:
-            self.data = load_dataset(trust_remote_code = True, **kwargs)
+            self.data = load_dataset(*args, trust_remote_code = True, **kwargs)
         else:
             self.data = []
     

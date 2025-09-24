@@ -43,7 +43,8 @@ class MyCheckpoint(Callback):
         self.eval_metric = validation_eval_metric
 
     def on_train_epoch_end(self, trainer, pl_module):
-        pl_module.test(self.eval_metric)
+        if self.eval_metric:
+            pl_module.test(self.eval_metric)
         
         epoch = trainer.current_epoch
         if epoch in self.epochs_to_save_at:
@@ -165,10 +166,12 @@ if __name__ == '__main__':
             """
     )
     parser.add_argument(
-        '-d', '--dataset-jsonl',
+        '-d', '--dataset',
         type = str,
         help = """
-            A jsonl file containing training data.
+            A jsonl file containing training data,
+            or a name of a dataset specified in the catalog.
+            
             If left unprovided, a corresponding default jsonl will be used.
             """,
     )
@@ -239,6 +242,11 @@ if __name__ == '__main__':
         type = int, default = 42,
         help = 'Random seed for reproducibility. '
     )
+    parser.add_argument(
+        '--validation-eval',
+        action = 'store_true',
+        help = 'Evaluate checkpoints on validation steps.  '
+    )
     args = parser.parse_args()
 
     min_epochs, max_epochs = 0, 0
@@ -252,24 +260,30 @@ if __name__ == '__main__':
         raise SyntaxError(f'Option -e/--epoch received invalid argument "{args.epochs}"')
     
     validation_eval_metric = None
-    if args.task not in ['pr', 'mlm']:
+    if args.validation_eval and args.task not in ['mlm']:
         # only evaluate during validation for fine-tuning
         try:
             validation_eval_metric = import_module('tasks.' + args.task).score
         except:
             logger.warning(f'Eval metric for task {args.task} not found.')
+            
+    ds = args.dataset
+    if not ds:
+        ds = get_dataset_path(args.task)
+    elif '.' not in ds:
+        ds = get_dataset_path(args.task, ds_name = ds)
     
     logger.passthru(args.task, 'task')
     run(
-        data_path = logger.passthru(args.dataset_jsonl or get_dataset_path(args.task), 'data path'),
+        data_path = logger.passthru(ds, 'data path'),
         resume_ckpt = logger.passthru(args.resume_ckpt, 'resume checkpoint path'),
         ckpt_filename = logger.passthru(args.ckpt_name, 'checkpoint filename'),
-        epochs_to_save = logger.passthru(args.epoch_to_save, 'epochs to save'),
+        epochs_to_save = logger.passthru(args.save_epoch, 'epochs to save'),
         save_last_epoch = logger.passthru(args.save_last_epoch, 'save last epoch'),
         min_epochs = logger.passthru(min_epochs, 'min epochs'),
         max_epochs = logger.passthru(max_epochs, 'max epochs'),
         precision = logger.passthru(args.precision, 'precision'),
-        save_top_k = logger.passthru(args.save_top_k, 'save top k'),
+        save_top_k = logger.passthru(args.save_top_k_epochs, 'save top k'),
         seed = logger.passthru(args.seed, 'seed'),
         learning_rate = logger.passthru(args.learning_rate, 'learning rate'),
         validation_eval_metric = logger.passthru(validation_eval_metric, 'validation evaluation metric'),

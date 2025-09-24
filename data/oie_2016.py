@@ -21,20 +21,33 @@ class OIE2016(PrepData):
                 self.data.append(line)
 
     def src_tgt_pairs(self, task: str):
-        if task not in ['oie']: raise NotImplementedError(task)
-        last_sentence, target = None, []
-        for example in self.data:
+        if task not in ['oie']:
+            raise NotImplementedError(task)
+        last_sentence = None
+        target: set[str] = set()
+        for example in self:
             parts = normalize_quotes(example).split('\t')
-            sentence, rest = parts[0], parts[2:] # parts[1] is the simple verb
-            if not sentence[0].isalnum(): continue
-            if not len(rest) >= 2: continue
+            input_sentence, output_components = parts[0], parts[2:] # parts[1] is the simple verb
+            if not input_sentence[0].isalnum():
+                continue
+                
+            if len(output_components) < 2:
+                continue
+            segment = '(' + output_components[1].strip() + ' ; ' + output_components[0].strip()
+            if len(output_components) >= 3:
+                segment += ' ; ' + ' ; '.join([s.strip() for s in output_components[2:]])
+            segment += ')'
             
-            segment = ' ; '.join([w.strip() for w in rest])
-            if sentence == last_sentence:
-                target.append(segment)
+            # # only include head, predicate, and first tail component
+            # if len(output_components) < 3:
+            #     continue
+            # segment = '(%s ; %s ; %s)' % (output_components[1], output_components[0], output_components[2].rstrip())
+
+            if input_sentence == last_sentence:
+                target.add(segment)
             else:
-                if last_sentence: yield last_sentence, ' <info_sep> '.join(target)
-                last_sentence, target = sentence, [segment]
+                if last_sentence: yield last_sentence, ' '.join(target)
+                last_sentence, target = input_sentence, set()
                 
 
 if __name__ == '__main__':

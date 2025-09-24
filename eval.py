@@ -124,10 +124,12 @@ if __name__ == '__main__':
         help = 'Path to the checkpoint to be evaluated. '
     )
     parser.add_argument(
-        '-d', '--dataset-jsonl',
+        '-d', '--dataset',
         type = str,
         help = """
-            A jsonl file containing evaluating data.
+            A jsonl file containing evaluating data,
+            or a name of a dataset specified in the catalog.
+            
             If left unprovided, a corresponding default jsonl will be used.
             """,
     )
@@ -150,11 +152,17 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
     
+    ds = args.dataset
+    if not ds:
+        ds = get_dataset_path(args.task)
+    elif '.' not in ds:
+        ds = get_dataset_path(args.task, ds_name = ds)
+    
     run(
         task = logger.passthru(args.task, 'task'),
         model_name = logger.passthru(args.model_name, 'model name'),
         ckpt_path = logger.passthru(args.ckpt, 'checkpoint path'),
-        data_path = logger.passthru(args.dataset_jsonl, 'dataset jsonl'),
+        data_path = logger.passthru(ds, 'dataset jsonl'),
         strict = logger.passthru(args.strict, 'strict metric'),
         max_seq_length = logger.passthru(args.max_seq_len, 'max sequence length'),
     )

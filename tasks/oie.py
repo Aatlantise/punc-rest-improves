@@ -22,6 +22,7 @@ def oie_dict_intersection(a: dict[str, dict[str, set[str]]], b: dict[str, dict[s
 
 
 def normalize_quotes(text: str) -> str:
+    text = re.sub(r"`", "'", text)
     text = re.sub(r"``", '"', text)
     text = re.sub(r"''", '"', text)
     return text

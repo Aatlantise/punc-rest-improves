@@ -26,7 +26,7 @@ class CaRB(PrepData):
         if task not in ['oie']: raise NotImplementedError(task)
         last_sentence = None
         target: set[str] = set()
-        for example in self.data:
+        for example in self:
             parts = normalize_quotes(example).split('\t')
             input_sentence, output_components = parts[0], parts[1:]
             if not input_sentence[0].isalnum():

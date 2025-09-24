@@ -73,27 +73,26 @@ class Wiki2023(PrepData):
 
     def src_tgt_pairs(self, task):
         excerpt_count = 0
-        for _, split in self.data.items():
-            for article in progress(split, 'Wiki dataprep for ' + task):
-                text = article.get("text", "")
-                if not text or len(text) < 200:
-                    continue
-                    
-                text = remove_reference_tags(text)
-                text = sent_tokenize(text)
-                for chunk in chunk_sentences(text, max_words = MAX_WORDS):
-                    target = chunk.strip()
-                    
-                    if task == 'pr':
-                        yield normalize_text(target), target
-                    elif task == 'mlm':
-                        yield mask_text(chunk.strip())
-                    else:
-                        raise NotImplementedError(f'Task {task} not implemented. ')
-                    
-                    excerpt_count += 1
-                    if excerpt_count >= MAX_EXCERPTS:
-                        return
+        for article in progress(self, 'Wiki dataprep for ' + task):
+            text = article.get("text", "")
+            if not text or len(text) < 200:
+                continue
+                
+            text = remove_reference_tags(text)
+            text = sent_tokenize(text)
+            for chunk in chunk_sentences(text, max_words = MAX_WORDS):
+                target = chunk.strip()
+                
+                if task == 'pr':
+                    yield normalize_text(target), target
+                elif task == 'mlm':
+                    yield mask_text(chunk.strip())
+                else:
+                    raise NotImplementedError(f'Task {task} not implemented. ')
+                
+                excerpt_count += 1
+                if excerpt_count >= MAX_EXCERPTS:
+                    return
 
 
 if __name__ == "__main__":

@@ -21,10 +21,11 @@ class OIE2016(PrepData):
                 self.data.append(line)
 
     def src_tgt_pairs(self, task: str):
-        if task not in ['oie']: raise NotImplementedError(task)
+        if task not in ['oie']:
+            raise NotImplementedError(task)
         last_sentence = None
         target: set[str] = set()
-        for example in self.data:
+        for example in self:
             parts = normalize_quotes(example).split('\t')
             input_sentence, output_components = parts[0], parts[2:] # parts[1] is the simple verb
             if not input_sentence[0].isalnum():

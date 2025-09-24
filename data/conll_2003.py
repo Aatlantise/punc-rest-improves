@@ -29,17 +29,16 @@ class CoNLL2003(PrepData):
     def src_tgt_pairs(self, task: str):
         if task not in ['pos', 'ner']:
             raise NotImplementedError(f'Task {task} not implemented. ')
-        for _, split in self.data.items():
-            for example in split:
-                tokens = example['tokens']
-                match task:
-                    case 'pos':
-                        source = ' '.join(tokens)
-                        target = ' '.join(map(self.id_to_pos_tag, example['pos_tags']))
-                        yield source, target
-                    case 'ner':
-                        tags = map(self.id_to_ner_tag, example['ner_tags'])
-                        yield ner_process(tokens, tags)
+        for example in self:
+            tokens = example['tokens']
+            match task:
+                case 'pos':
+                    source = ' '.join(tokens)
+                    target = ' '.join(map(self.id_to_pos_tag, example['pos_tags']))
+                    yield source, target
+                case 'ner':
+                    tags = map(self.id_to_ner_tag, example['ner_tags'])
+                    yield ner_process(tokens, tags)
 
 
 if __name__ == '__main__':

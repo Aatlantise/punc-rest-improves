@@ -16,11 +16,25 @@ class PrepData:
 
     def __init__(self, hf_dataset: bool = True, **kwargs) -> None:
         """Loads dataset form hugging face"""
+        self.hf_dataset = hf_dataset
         if hf_dataset:
             self.data = load_dataset(trust_remote_code = True, **kwargs)
         else:
             self.data = []
-
+    
+    def __iter__(self) -> Generator:
+        if self.hf_dataset:
+            return self
+        else:
+            return self.data.__iter__()
+    
+    def __next__(self):
+        if not self.hf_dataset: # TODO: check if work
+            raise Exception('Non-hf dataset used class internal method')
+        for _, split in self.data.items():
+            for example in split:
+                yield example
+    
     def src_tgt_pairs(self, task: str) -> Generator[tuple[str, str], None, None]:
         """A generator function of source-target pairs as examples of training data"""
         pass

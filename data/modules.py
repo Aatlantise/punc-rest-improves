@@ -29,7 +29,7 @@ class PrepData:
                     yield example
             return
         else:
-            return self.data.__iter__()
+            return self.data
     
     def src_tgt_pairs(self, task: str) -> Generator[tuple[str, str], None, None]:
         """A generator function of source-target pairs as examples of training data"""

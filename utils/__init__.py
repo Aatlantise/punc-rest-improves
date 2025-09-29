@@ -41,15 +41,17 @@ def prf1(num_correct: int, num_attempted: int, num_gold: int) -> tuple[float, fl
         f1 = 0
     else:
         f1 = 2 * precision * recall / (precision + recall)
-        
+    
     return precision, recall, f1
 
 
 def logger(name: str = None):
     l = logging.getLogger(name)
+    
     def passthru(self, v, n: str):
         self.debug(f"Assigned {n} to {v}")
         return v
+    
     logging.Logger.passthru = passthru
     return l
 
@@ -63,8 +65,8 @@ def oie_part_counts(filename: str):
                 l = len(b.group(1).split(';')) - 1
                 counts[l] += 1
     pp(counts)
-    
-    
+
+
 def progress(iterable, desc: str):
     """Progress Bar for an Iterable Object"""
     return tqdm(iterable, ascii = True, desc = desc)
@@ -78,10 +80,9 @@ def text_to_triple(outputs, targets):
     output_list = []
     target_list = []
     for output, target in zip(outputs, targets):
-
         sentence_outputs = []
         sentence_targets = []
-
+        
         if output == "":
             pass
         else:
@@ -91,12 +92,14 @@ def text_to_triple(outputs, targets):
                 if len(output_split) < 3:
                     output_split.extend(["", "", ""])
                 head, pred, tail = output_split[:3]
-                sentence_outputs.append({
-                    "head": head.replace("(", "").strip(' '),
-                    "predicate": pred.strip(' '),
-                    "tail": tail.replace(")", "").strip(' ')
-                })
-
+                sentence_outputs.append(
+                    {
+                        "head": head.replace("(", "").strip(' '),
+                        "predicate": pred.strip(' '),
+                        "tail": tail.replace(")", "").strip(' ')
+                    }
+                )
+        
         if target == "":
             pass
         else:
@@ -106,15 +109,17 @@ def text_to_triple(outputs, targets):
                 if len(target_split) < 3:
                     target_split.extend(["", "", ""])
                 head, pred, tail = target_split[:3]
-                sentence_targets.append({
-                    "head": head.replace("(", "").strip(' '),
-                    "predicate": pred.strip(' '),
-                    "tail": tail.replace(")", "").strip(' ')
-                })
-
+                sentence_targets.append(
+                    {
+                        "head": head.replace("(", "").strip(' '),
+                        "predicate": pred.strip(' '),
+                        "tail": tail.replace(")", "").strip(' ')
+                    }
+                )
+        
         output_list.append(sentence_outputs)
         target_list.append(sentence_targets)
-
+    
     return output_list, target_list
 
 

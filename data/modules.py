@@ -22,18 +22,14 @@ class PrepData:
         else:
             self.data = []
     
-    def __iter__(self) -> Generator:
+    def __iter__(self):
         if self.hf_dataset:
-            return self
+            for _, split in self.data.items():
+                for example in split:
+                    yield example
+            return
         else:
             return self.data.__iter__()
-    
-    def __next__(self):
-        if not self.hf_dataset: # TODO: check if work
-            raise Exception('Non-hf dataset used class internal method')
-        for _, split in self.data.items():
-            for example in split:
-                yield example
     
     def src_tgt_pairs(self, task: str) -> Generator[tuple[str, str], None, None]:
         """A generator function of source-target pairs as examples of training data"""

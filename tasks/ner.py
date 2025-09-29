@@ -4,6 +4,7 @@ logger = logger(__name__)
 
 
 def process(tokens: list[str], tags: list[str]) -> tuple[str, str]:
+    """Format lists of tokens and their NER tags into source-target sequences."""
     source = ' '.join(tokens)
     target = []
     current = ""

@@ -122,12 +122,30 @@ def run(
                 f.write('\n')
     
     logger.info(f'Evaluating {task} score.')
-    if task in ['glue_CoLA', 'glue_sst2', 'glue_mrpc', 'glue_stsb', 'glue_qqp', 'glue_mnli', 'glue_qnli', 'glue_rte', 'glue_wnli']:
-        acc = import_module('tasks.' + task).score(texts, outputs, targets)
+    if task in ['glue_CoLA', 'glue_sst2', 'glue_mrpc', 'glue_qqp', 'glue_mnli', 'glue_qnli', 'glue_rte', 'glue_wnli']:
+        acc = import_module('tasks.glueAccuracy').score(texts, outputs, targets)
         print(
             f"""
             =============== Evaluation Result ===============
             Accuracy: {acc}
+            """
+        )
+    elif task in ['glue_stsb']:
+        outputs = [float(o) for o in outputs]
+        targets = [float(t) for t in targets]
+        pearson = import_module('tasks.' + task).score(texts, outputs, targets)
+        print(
+            f"""
+            =============== Evaluation Result ===============
+            Pearson: {pearson}
+            """
+        )
+    elif task in ['glue_CoLA']:
+        MCC = import_module('tasks.MCC').score(texts, outputs, targets)
+        print(
+            f"""
+            =============== Evaluation Result ===============
+            MCC: {MCC}
             """
         )
     else:

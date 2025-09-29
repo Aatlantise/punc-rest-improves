@@ -59,6 +59,7 @@ def run(
     save_last_epoch: bool,
     min_epochs: int,
     max_epochs: int,
+    language: str,
     accelerator: str = 'gpu',
     adam_epsilon: float = 1e-8,
     devices: int = 1,
@@ -66,7 +67,6 @@ def run(
     learning_rate: float = 3e-4,
     log_every_n_steps: int = 10,
     max_seq_length: int = 512,
-    model_name_or_path = 'google-t5/t5-base',
     monitor_metric: str = 'val_loss',
     num_train_epochs: int = 3,
     num_workers: int = 4,
@@ -87,18 +87,21 @@ def run(
     training_data = TrainData(data_path)
     logger.info(f'Loaded training data from {data_path}')
     
-    model = T5.load_from_checkpoint(resume_ckpt) if resume_ckpt else T5(
-        adam_epsilon = adam_epsilon,
-        eval_batch_size = eval_batch_size,
-        learning_rate = learning_rate,
-        max_seq_length = max_seq_length,
-        model = model_name_or_path,
-        num_train_epochs = num_train_epochs,
-        num_workers = num_workers,
-        train_batch_size = train_batch_size,
-        warmup_steps = warmup_steps,
-        weight_decay = weight_decay,
-    )
+    if resume_ckpt:
+        model = T5.load_from_checkpoint(resume_ckpt)
+    else:
+        model = T5(
+            adam_epsilon = adam_epsilon,
+            eval_batch_size = eval_batch_size,
+            learning_rate = learning_rate,
+            max_seq_length = max_seq_length,
+            lang = language,
+            num_train_epochs = num_train_epochs,
+            num_workers = num_workers,
+            train_batch_size = train_batch_size,
+            warmup_steps = warmup_steps,
+            weight_decay = weight_decay,
+        )
     model.store_data(training_data)
     logger.info('Initialized model')
     
@@ -186,6 +189,15 @@ if __name__ == '__main__':
             """
     )
     parser.add_argument(
+        '-l', '--language',
+        type = str, default = 'en',
+        help = """
+            Base language for the model.
+            
+            Default is 'en', for English.
+            """
+    )
+    parser.add_argument(
         '--learning-rate',
         type = float, default = 3e-4,
         help = """
@@ -264,7 +276,7 @@ if __name__ == '__main__':
         # only evaluate during validation for fine-tuning
         try:
             validation_eval_metric = import_module('tasks.' + args.task).score
-        except:
+        except ImportError:
             logger.warning(f'Eval metric for task {args.task} not found.')
             
     ds = args.dataset
@@ -280,6 +292,7 @@ if __name__ == '__main__':
         ckpt_filename = logger.passthru(args.ckpt_name, 'checkpoint filename'),
         epochs_to_save = logger.passthru(args.save_epoch, 'epochs to save'),
         save_last_epoch = logger.passthru(args.save_last_epoch, 'save last epoch'),
+        language = logger.passthru(args.language, 'model language'),
         min_epochs = logger.passthru(min_epochs, 'min epochs'),
         max_epochs = logger.passthru(max_epochs, 'max epochs'),
         precision = logger.passthru(args.precision, 'precision'),

@@ -1,5 +1,8 @@
+import json
+
 from data.modules import PrepData
-from utils import logger
+from tasks.ner import process
+from utils import logger, join_path
 
 logger = logger(__name__)
 
@@ -7,9 +10,16 @@ logger = logger(__name__)
 
 class MultiNERD(PrepData):
 
-    def __init__(self, lang = 'fr'):
+    def __init__(self, lang = 'fr', local_dir = None):
         """Loads dataset form hugging face"""
-        super().__init__('tner/multinerd', lang)
+        if local_dir:
+            super().__init__(hf_dataset = False)
+            path = join_path(local_dir, f'{lang}.jsonl')
+            with open(path, 'r') as f:
+                for line in f:
+                    self.data.append(json.loads(line))
+        else:
+            super().__init__('tner/multinerd', lang)
     
     @staticmethod
     def id_to_label(id):
@@ -22,16 +32,15 @@ class MultiNERD(PrepData):
         ]
         return labels[id]
     
-    def src_tgt_pairs(self, task: str):
+    def src_tgt_pairs(self, task):
         if task not in ['ner']:
             raise NotImplementedError(f'Task {task} not implemented. ')
-        for _, split in self.data.items():
-            for example in split:
-                tokens = example['tokens']
-                tags = list(map(self.id_to_label, example['tags']))
-                yield ' '.join(tokens), ' '.join(tags)
+        for example in self:
+            tokens = example['tokens']
+            tags = list(map(self.id_to_label, example['tags']))
+            yield process(tokens, tags)
 
 
 if __name__ == '__main__':
-    o = MultiNERD()
-    o.to_json('multinerd.fr-ner')
+    o = MultiNERD(local_dir = '../External Datasets/multinerd')
+    o.to_json('ner', 'multinerd.fr-ner')

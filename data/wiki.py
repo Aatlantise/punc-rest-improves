@@ -2,6 +2,7 @@ import nltk
 import random
 import re
 
+from argparse import ArgumentParser
 from data.modules import PrepData
 from nltk.tokenize import sent_tokenize, word_tokenize
 from utils import progress, logger
@@ -166,10 +167,10 @@ def chunk_sentences(sentences, max_words = MAX_WORDS) -> list[str]:
 class Wiki2023(PrepData):
     """English Wikipedia"""
 
-    def __init__(self):
+    def __init__(self, lang = 'en'):
         super().__init__(
             path = 'wikimedia/wikipedia',
-            name = '20231101.en',
+            name = '20231101.' + lang,
         )
     
     def rations(self, size: int = 5000):
@@ -207,10 +208,19 @@ class Wiki2023(PrepData):
 
 
 if __name__ == "__main__":
-    nltk.download('punkt')
-    nltk.download('punkt_tab')
+    parser = ArgumentParser()
+    parser.add_argument(
+        '-l',
+        type = str,
+        help = 'Language',
+    )
+    args = parser.parse_args()
+    lang = args.l
+    
+    # nltk.download('punkt')
+    # nltk.download('punkt_tab')
     random.seed(42)
-    ds = Wiki2023()
-    ds.to_json('pr', 'wiki-20231101.en-pr')
-    ds.to_json('mlm', 'wiki-20231101.en-mlm')
+    ds = Wiki2023(lang = lang)
+    ds.to_json('pr', f'wiki-20231101.{lang}-pr')
+    ds.to_json('mlm', f'wiki-20231101.{lang}-mlm')
     

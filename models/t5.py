@@ -35,7 +35,7 @@ class T5(LightningModule):
         super().__init__()
         self.save_hyperparameters()
         if lang == 'en':
-            model = 'google/t5-base'
+            model = 'google-t5/t5-base'
         elif lang == 'fr':
             model = 'guillaumephd/t5-french-base'
         else:

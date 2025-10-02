@@ -21,12 +21,7 @@ class Antilles(PrepData):
         if task not in ['pos']:
             raise NotImplementedError(f'Task {task} not implemented. ')
         for example in self.data:
-            source = example.text
-            target = example.pos_str()
-            if target != '':
-                yield source, target
-            else:
-                continue
+            yield example.text, example.pos_str()
 
 
 if __name__ == '__main__':

@@ -21,7 +21,7 @@ As such, if data-prepping is not done the following way, you should use `-d` to 
 
 For example, the following loads the CoNLL 2003 dataset and generates data for POS and NER. 
 
-```commandline
+```sh
 python -m data.conll_2003
 ```
 

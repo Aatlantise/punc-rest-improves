@@ -24,8 +24,11 @@ catalog = {
         'default': 'conll03',
         'ds': {
             'conll03': 'conll-2003-ner.jsonl',
-            'ontonotes': 'ontonotes5-ner.jsonl',
             'genia': 'genia-ner.jsonl',
+            'multinerd': 'multinerd.fr-ner.jsonl',
+            'ontonotes': 'ontonotes5-ner.jsonl',
+            'partut': 'partut-ner.jsonl',
+            'wikiann': 'wikiann.fr-ner.jsonl',
         },
     },
     'oie': {
@@ -38,6 +41,7 @@ catalog = {
     'pos': {
         'default': 'conll03',
         'ds': {
+            'antilles': 'antilles-pos.jsonl',
             'conll00': 'conll-2000-pos.jsonl',
             'conll03': 'conll-2003-pos.jsonl',
         }

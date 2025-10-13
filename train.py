@@ -5,12 +5,12 @@ import re
 import torch
 
 from argparse import ArgumentParser
-from data.modules import TrainData
+from data.modules import TrainData, NumericTrainData
 from datetime import datetime
 from lightning import Callback, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
-from models.t5 import PRT5
+from models.t5 import PRT5, PRT5Numeric
 from os.path import join as join_paths
 from utils import logger
 
@@ -74,20 +74,59 @@ def run(
     set_seed(seed)
     
     training_data = TrainData(data_path)
+    if (data_path == 'outputs/datasets/stsb_train.jsonl'):
+        logger.debug("stsb regression")
+        training_data = NumericTrainData(data_path)
+
     logger.info(f'Loaded training data from {data_path}')
     
-    model = PRT5.load_from_checkpoint(resume_ckpt) if resume_ckpt else PRT5(
-        adam_epsilon = adam_epsilon,
-        eval_batch_size = eval_batch_size,
-        learning_rate = learning_rate,
-        max_seq_length = max_seq_length,
-        model = model_name_or_path,
-        num_train_epochs = num_train_epochs,
-        num_workers = num_workers,
-        train_batch_size = train_batch_size,
-        warmup_steps = warmup_steps,
-        weight_decay = weight_decay,
-    )
+    
+    if (data_path == 'outputs/datasets/stsb_train.jsonl'):
+        logger.debug("stsb regression")
+        model = PRT5Numeric(
+            adam_epsilon = adam_epsilon,
+            eval_batch_size = eval_batch_size,
+            learning_rate = learning_rate,
+            max_seq_length = max_seq_length,
+            model = model_name_or_path,
+            num_train_epochs = num_train_epochs,
+            num_workers = num_workers,
+            train_batch_size = train_batch_size,
+            warmup_steps = warmup_steps,
+            weight_decay = weight_decay,
+        )
+        if resume_ckpt:
+            ckpt = torch.load(resume_ckpt, map_location='cpu')
+            PR_model = PRT5.load_from_checkpoint(resume_ckpt)
+            model.model.load_state_dict(PR_model.state_dict(), strict=False)
+        # Did not have regression head for PR training
+        # model = PRT5Numeric.load_from_checkpoint(resume_ckpt) if resume_ckpt else PRT5Numeric(
+        #     adam_epsilon = adam_epsilon,
+        #     eval_batch_size = eval_batch_size,
+        #     learning_rate = learning_rate,
+        #     max_seq_length = max_seq_length,
+        #     model = model_name_or_path,
+        #     num_train_epochs = num_train_epochs,
+        #     num_workers = num_workers,
+        #     train_batch_size = train_batch_size,
+        #     warmup_steps = warmup_steps,
+        #     weight_decay = weight_decay,
+        # )
+    else:
+        model = PRT5.load_from_checkpoint(resume_ckpt) if resume_ckpt else PRT5(
+            adam_epsilon = adam_epsilon,
+            eval_batch_size = eval_batch_size,
+            learning_rate = learning_rate,
+            max_seq_length = max_seq_length,
+            model = model_name_or_path,
+            num_train_epochs = num_train_epochs,
+            num_workers = num_workers,
+            train_batch_size = train_batch_size,
+            warmup_steps = warmup_steps,
+            weight_decay = weight_decay,
+        )
+    
+      
     model.store_data(training_data)
     logger.info('Initialized model')
     

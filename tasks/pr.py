@@ -55,7 +55,7 @@ def score(texts, outputs, targets, printer = print, strict = False):
                 elif s == o:
                     correct_rejection += 1
 
-    p, r, f1 = prf1(problem, attempt, hit)
+    p, r, f1 = prf1(hit, attempt, problem)
 
     if 0 in [attempt, hit, problem]:
         print("No good extractions have been made. Continuing training...")

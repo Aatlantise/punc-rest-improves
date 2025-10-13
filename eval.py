@@ -130,6 +130,16 @@ def run(
             Accuracy: {acc}
             """
         )
+    elif task in ['glue_CoLA']:
+        outputs = [float(o) for o in outputs]
+        targets = [float(t) for t in targets]
+        matthews = import_module('tasks.' + task).score(texts, outputs, targets)
+        print(
+            f"""
+            =============== Evaluation Result ===============
+            Matthews: {matthews}
+            """
+        )
     elif task in ['glue_stsb']:
         outputs = [float(o) for o in outputs]
         targets = [float(t) for t in targets]

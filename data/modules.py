@@ -4,6 +4,7 @@ from datasets import load_dataset, Dataset
 from torch.utils.data import DataLoader
 from typing import Generator
 from utils import logger
+import torch
 
 logger = logger()
 
@@ -87,6 +88,51 @@ class TrainData:
             return sources
         
         ds = Dataset.from_list(self.data[split]).map(preprocess, batched = True)
+        ds.set_format(type = 'torch', columns = ['input_ids', 'attention_mask', 'labels'])
+        dl = DataLoader(ds, batch_size = eval_batch_size, **kwargs)
+        return dl
+
+
+class NumericTrainData:
+    """Reads dataset from jsonl and provides dataloaders for training"""
+    
+    def __init__(self, jsonl_path: str):
+        """Read and split dataset in JSONL"""
+        with open(jsonl_path) as jsonl_file:
+            data = []
+            for line in jsonl_file:
+                data.append(json.loads(line))
+        l = len(data)
+        a = int(l * 0.8)
+        b = int(l * 0.9)
+        self.data = {
+            'train': data[:a],
+            'dev': data[a:b],
+            'test': data[b:]
+        }
+    
+    def loader(
+        self,
+        split: str,
+        tokenizer,
+        max_seq_length: int,
+        eval_batch_size: int,
+        **kwargs,
+    ):
+        """Dataloader for data with set tokenizer and other parameters"""
+        
+        def preprocess(example):
+            sources = tokenizer(
+                example['source'],
+                max_length = max_seq_length,
+                truncation = True,
+                padding = 'max_length',
+            )
+            targetvals = float(example['target'])
+            sources['labels'] = torch.tensor(targetvals, dtype=torch.float32)
+            return sources
+        
+        ds = Dataset.from_list(self.data[split]).map(preprocess, batched = False)
         ds.set_format(type = 'torch', columns = ['input_ids', 'attention_mask', 'labels'])
         dl = DataLoader(ds, batch_size = eval_batch_size, **kwargs)
         return dl

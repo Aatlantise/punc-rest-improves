@@ -12,6 +12,8 @@ def score(texts, outputs, targets, strict: bool = False, printer = print):
 
     for sent, o, t in zip(texts, outputs, targets):
         total += 1
+        printer("gold is: ", t)
+        printer("pred is: ", o)
         try:
             pred = float(o)
             gold = float(t)

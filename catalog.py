@@ -1,5 +1,10 @@
+# This file documents existing dataset locations
+# So it's easier to use with `-d`; no need to type out full path
+# For example `-d genia` when task is `ner` is the same as `-d outputs/datasets/genia-ner.jsonl'
+
 from utils import join_path
 
+DATASET_DIR = 'outputs/datasets'
 
 catalog = {
     'chunking': {
@@ -63,11 +68,10 @@ catalog = {
 def get_dataset_path(
     task: str,
     ds_name: str = None,
-    dataset_dir: str = 'outputs/datasets'
 ):
     if task not in catalog.keys():
         raise NotImplementedError(task)
     task_obj = catalog[task]
     task_datasets = task_obj['ds']
     filename = task_datasets[ds_name or task_obj['default']]
-    return join_path(dataset_dir, filename)
+    return join_path(DATASET_DIR, filename)

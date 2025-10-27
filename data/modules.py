@@ -1,5 +1,6 @@
 import json
 
+from catalog import DATASET_DIR
 from datasets import load_dataset, Dataset
 from torch.utils.data import DataLoader
 from typing import Generator
@@ -62,6 +63,9 @@ class TrainData:
             for line in jsonl_file:
                 data.append(json.loads(line))
         l = len(data)
+        
+        # The train-dev-test split ratios are defined here
+        # Might want to consider making this more flexible
         a = int(l * 0.8)
         b = int(l * 0.9)
         self.data = {

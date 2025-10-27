@@ -1,5 +1,3 @@
-# punctuation-restoration-for-structure-understanding
-
 This is our code that accompanies a RepL4NLP Paper 
 [Punctuation restoration improves structure understanding without supervision](https://aclanthology.org/2025.repl4nlp-1.10/), 
 where we apply punctuation restoration as an unsupervised structure learning objective 
@@ -95,13 +93,17 @@ Optional arguments:
 
 ### Logs
 
-Tensorboard logs can be viewed at [localhost:6006](localhost:6006) by:
+Tensorboard logs can be viewed with
 ```commandline
-tensorboard --logdir=outputs/logs --host=0.0.0.0
+tensorboard --logdir=outputs/logs
 ```
 
-If you're on GU CLI, refer to the [GU CLI remote dev guide](https://github.com/Aatlantise/gu-cli-remote-dev)
-to set up a tunnel to view the logs on your local machine.
+### Future Improvements
 
+There are a number of quality of life improvements that can be made to this project. 
 
+- [ ] Better mechanism to manage test/evaluation runs and logs
+- [ ] Allow in-training evaluation with generation size independent of validation split size
+- [ ] Make progress bars friendly for command-line logs (currently torch progress bars litter the logs and make them borderline unreadable)
+- [ ] Better design to ease implementation of other models and languages
 

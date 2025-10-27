@@ -2,13 +2,14 @@ import json
 import os
 
 from argparse import ArgumentParser
+from catalog import get_dataset_path
 from data.modules import TrainData
 from importlib import import_module
 from tasks.ner import score as object_generation_score
-from train import PRT5
+from train import T5
 from utils import logger, clean_split
 
-logger = logger()
+logger = logger(__name__)
 
 
 def multitask_score(texts, outputs, targets, printer = print):
@@ -61,17 +62,6 @@ def run(
     print(f"=============== Model {model_name} {task} Evaluation ===============")
     path = 'outputs/generated/%s.jsonl' % model_name.split(' ', 1)[0]
     
-    default_data_paths = {
-        'pr': 'outputs/datasets/wiki-20231101.en-pr.jsonl',
-        'mlm': 'outputs/datasets/wiki-20231101.en-mlm.jsonl',
-        'srl': 'outputs/datasets/conll-2012-srl.jsonl',
-        'pos': 'outputs/datasets/conll-2003-pos.jsonl',
-        'oie': 'outputs/datasets/oie-2016-oie.jsonl',
-        'chunking': 'outputs/datasets/conll-2000-chunking.jsonl',
-        're': 'outputs/datasets/conll-2004-re.jsonl',
-        'ner': 'outputs/datasets/conll-2003-ner.jsonl',
-    }
-    
     texts, outputs, targets = [], [], []
     if os.path.isfile(path):
         logger.info('Restoring outputs from %s.' % path)
@@ -83,10 +73,10 @@ def run(
                 targets.append(obj['target'])
     else:
         logger.info(f'Loading model {model_name} from checkpoint {ckpt_path}')
-        model = PRT5.load_from_checkpoint(ckpt_path)
+        model = T5.load_from_checkpoint(ckpt_path)
         
         logger.info(f'Loading dataset from path {data_path}')
-        data_path = data_path or default_data_paths[task]
+        data_path = data_path or get_dataset_path(task)
         ds = TrainData(data_path)
         
         logger.info('Initializing dataloader. ')
@@ -135,12 +125,21 @@ if __name__ == '__main__':
         help = 'Path to the checkpoint to be evaluated. '
     )
     parser.add_argument(
-        '-d', '--dataset-jsonl',
+        '-d', '--dataset',
         type = str,
         help = """
-            A jsonl file containing evaluating data.
+            A jsonl file containing evaluating data,
+            or a name of a dataset specified in the catalog.
+            
             If left unprovided, a corresponding default jsonl will be used.
             """,
+    )
+    parser.add_argument(
+        '--max-seq-len',
+        type = int, default = 512,
+        help = """
+            Max token length in a sequence.
+            """
     )
     parser.add_argument(
         '-n', '--model-name',
@@ -154,10 +153,17 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
     
+    ds = args.dataset
+    if not ds:
+        ds = get_dataset_path(args.task)
+    elif '.' not in ds:
+        ds = get_dataset_path(args.task, ds_name = ds)
+    
     run(
-        task = args.task,
-        model_name = args.model_name,
-        ckpt_path = args.ckpt,
-        data_path = args.dataset_jsonl,
-        strict = args.strict,
+        task = logger.passthru(args.task, 'task'),
+        model_name = logger.passthru(args.model_name, 'model name'),
+        ckpt_path = logger.passthru(args.ckpt, 'checkpoint path'),
+        data_path = logger.passthru(ds, 'dataset jsonl'),
+        strict = logger.passthru(args.strict, 'strict metric'),
+        max_seq_length = logger.passthru(args.max_seq_len, 'max sequence length'),
     )

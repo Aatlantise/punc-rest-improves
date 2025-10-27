@@ -4,7 +4,6 @@ from data.modules import TrainData
 from lightning import LightningModule
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 from transformers import (
     PreTrainedModel,
     T5ForConditionalGeneration,
@@ -12,13 +11,12 @@ from transformers import (
     get_scheduler,
 )
 from typing import Callable, Union
-from utils import logger
+from utils import logger, progress
 
-logger = logger()
+logger = logger(__name__)
 
 
-class PRT5(LightningModule):
-    """PR-T5 model"""
+class T5(LightningModule):
     
     def __init__(
         self,
@@ -31,11 +29,17 @@ class PRT5(LightningModule):
         warmup_steps: int,
         weight_decay: float,
         epoch_end_result_path: str = 'test_predictions.jsonl',
-        model: str = 'google-t5/t5-base',
+        lang: str = 'en',
         num_workers: int = 4,
     ):
         super().__init__()
         self.save_hyperparameters()
+        if lang == 'en':
+            model = 'google-t5/t5-base'
+        elif lang == 'fr':
+            model = 'guillaumephd/t5-french-base'
+        else:
+            raise NotImplementedError(lang)
         self.model = T5ForConditionalGeneration.from_pretrained(model)
         self.tokenizer = T5TokenizerFast.from_pretrained(model)
         self.outputs = []
@@ -90,7 +94,7 @@ class PRT5(LightningModule):
     
     def _verify_data_stored(self):
         if self.training_data is None:
-            raise Exception('PRT5 model has no stored TrainData data. Call .store_data() before using dataloaders!')
+            raise Exception('T5 model has no stored TrainData data. Call .store_data() before using dataloaders!')
         
     def _generic_dataloader(self, split: str) -> DataLoader:
         self._verify_data_stored()
@@ -153,26 +157,6 @@ class PRT5(LightningModule):
         torch.save(self.state_dict(), path)
         logger.info(f'Saved model to {path}')
     
-    def _generate(
-        self,
-        input_dataloader,
-        max_len,
-        num_beams,
-        skip_special_tokens,
-    ) -> tuple[list[str], list[str], list[str]]:
-        texts, outputs, targets = [], [], []
-        with torch.no_grad():
-            for batch in tqdm(input_dataloader):
-                texts.extend(map(self.decoder(skip_special_tokens), batch['input_ids']))
-                outputs.extend(map(self.decoder(skip_special_tokens), self.model.generate(
-                    input_ids = batch['input_ids'].to('cuda'),
-                    attention_mask = batch['attention_mask'].to('cuda'),
-                    max_length = max_len,
-                    num_beams = num_beams,
-                )))
-                targets.extend(map(self.decoder(skip_special_tokens), batch['labels']))
-        return texts, outputs, targets
-    
     def generate(
         self,
         input_dataloader: DataLoader,
@@ -181,9 +165,46 @@ class PRT5(LightningModule):
         skip_special_tokens: bool = True,
     ) -> tuple[list[str], list[str], list[str]]:
         self.model.eval()
-        return self.to('cuda')._generate(
-            input_dataloader,
-            max_len,
-            num_beams,
-            skip_special_tokens,
-        )
+        cuda_plm = self.to('cuda')
+        texts, outputs, targets = [], [], []
+        with torch.no_grad():
+            for batch in progress(input_dataloader, 'Generating texts'):
+                texts.extend(map(
+                    cuda_plm.decoder(skip_special_tokens),
+                    batch['input_ids']
+                ))
+                outputs.extend(map(
+                    cuda_plm.decoder(skip_special_tokens),
+                    cuda_plm.model.generate(
+                        input_ids = batch['input_ids'].to('cuda'),
+                        attention_mask = batch['attention_mask'].to('cuda'),
+                        max_length = max_len,
+                        num_beams = num_beams,
+                    )
+                ))
+                targets.extend(map(
+                    cuda_plm.decoder(skip_special_tokens),
+                    batch['labels']
+                ))
+        return texts, outputs, targets
+    
+    def test(self, eval_metric: Callable[[list[str], list[str], list[str]], tuple[float, float, float]]):
+        if not eval_metric:
+            logger.info(f'No metric provided for in-fitting evaluations, continuing. ')
+            return
+            
+        logger.info('Testing model during fitting. ')
+        
+        logger.info('Loading test dataloader')
+        test_loader = self.test_dataloader()
+        
+        logger.info('Generating outputs')
+        texts, outputs, targets = self.generate(test_loader)
+        
+        logger.info('Evaluating current epoch')
+        p, r, f1 = eval_metric(texts, outputs, targets)
+        
+        logger.info('Evaluation complete. Results:')
+        logger.info(f'\tPrecision: \t{p:.4f}')
+        logger.info(f'\tRecall: \t{r:.4f}')
+        logger.info(f'\tF1: \t{f1:.4f}\n')

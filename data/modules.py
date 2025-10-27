@@ -1,11 +1,13 @@
 import json
+import os
 
+from catalog import DATASET_DIR
 from datasets import load_dataset, Dataset
 from torch.utils.data import DataLoader
 from typing import Generator
 from utils import logger
 
-logger = logger()
+logger = logger(__name__)
 
 
 class PrepData:
@@ -14,13 +16,23 @@ class PrepData:
     Subclasses should implement `src_tgt_pairs`
     """
 
-    def __init__(self, hf_dataset: bool = True, **kwargs) -> None:
+    def __init__(self, *args, hf_dataset: bool = True, **kwargs) -> None:
         """Loads dataset form hugging face"""
+        self.hf_dataset = hf_dataset
         if hf_dataset:
-            self.data = load_dataset(trust_remote_code = True, **kwargs)
+            self.data = load_dataset(*args, trust_remote_code = True, **kwargs)
         else:
             self.data = []
-
+    
+    def __iter__(self):
+        if self.hf_dataset:
+            for _, split in self.data.items():
+                for example in split:
+                    yield example
+            return
+        else:
+            return self.data
+    
     def src_tgt_pairs(self, task: str) -> Generator[tuple[str, str], None, None]:
         """A generator function of source-target pairs as examples of training data"""
         pass
@@ -28,10 +40,10 @@ class PrepData:
     def to_json(self, task: str, name: str = None, path: str = None) -> int:
         """Output data to JSONL
 
-        Default path is `outputs/datasets/` with the jsonl file named after the caller class.
+        Default path is DATASET_DIR with the jsonl file named after the caller class.
         """
         name = name or self.__class__.__name__ + '-' + task
-        path = path or 'outputs/datasets/' + name + '.jsonl'
+        path = path or os.path.join(DATASET_DIR, name + '.jsonl')
         num_lines = 0
         with open(path, 'w', encoding = 'utf-8') as file:
             for source, target in self.src_tgt_pairs(task):
@@ -52,6 +64,9 @@ class TrainData:
             for line in jsonl_file:
                 data.append(json.loads(line))
         l = len(data)
+        
+        # The train-dev-test split ratios are defined here
+        # Might want to consider making this more flexible
         a = int(l * 0.8)
         b = int(l * 0.9)
         self.data = {

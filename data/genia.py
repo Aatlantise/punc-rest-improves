@@ -2,7 +2,7 @@ from data.modules import PrepData
 from tasks.ner import process
 from utils import logger
 
-logger = logger()
+logger = logger(__name__)
 
 
 class GENIA(PrepData):
@@ -19,11 +19,10 @@ class GENIA(PrepData):
     def src_tgt_pairs(self, task: str):
         if task not in ['ner']:
             raise NotImplementedError(f'Task {task} not implemented. ')
-        for _, split in self.data.items():
-            for example in split:
-                tokens = example['tokens']
-                tags = map(self.id_to_ner_tag, example['ner_tags'])
-                yield process(tokens, tags)
+        for example in self:
+            tokens = example['tokens']
+            tags = map(self.id_to_ner_tag, example['ner_tags'])
+            yield process(tokens, tags)
 
 
 if __name__ == '__main__':

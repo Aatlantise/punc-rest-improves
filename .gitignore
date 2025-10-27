@@ -1,5 +1,11 @@
 .idea/*
+.vscode
 eval/*
 docker/*
 *.sh
 /outputs/
+**/__pycache__
+**/.DS_Store
+logs
+slurm
+*.txt

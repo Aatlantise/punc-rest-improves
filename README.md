@@ -1,5 +1,3 @@
-# punctuation-restoration-for-structure-understanding
-
 This is our code that accompanies a RepL4NLP Paper 
 [Punctuation restoration improves structure understanding without supervision](https://aclanthology.org/2025.repl4nlp-1.10/), 
 where we apply punctuation restoration as an unsupervised structure learning objective 
@@ -14,17 +12,20 @@ such as named entity recognition, open information extraction, and semantic role
 
 Run a file under `data/` to generate training data using the specific dataset. 
 Shared-task datasets' files will generate a separate JSONL file for each implemented task. 
-JSONL files are under `outputs/datasets/`. 
+
+These JSONL files are under `outputs/datasets/`. If a dataset is not passed in when running a train/eval command, 
+the code will look for one here. 
+As such, if data-prepping is not done the following way, you should use `-d` to pass in a dataset for train/eval. 
 
 For example, the following loads the CoNLL 2003 dataset and generates data for POS and NER. 
 
-```commandline
+```sh
 python -m data.conll_2003
 ```
 
 for now, it is necessary to use the `-m` and run it as a module. 
 
-OIE datasets may require additional local data files. Refer to implementation details. 
+OIE datasets may require additional local data files. Refer to implementation details.
 
 ### Pre-training and Fine-tuning
 
@@ -50,10 +51,19 @@ Optional arguments:
 
 - `-d`: path to a JSONL file containing training data. By default, a file associated with the task is used. 
 - `-e`: number of epochs to run. `-e 30` to run exactly 30 epochs, `-e 1-3` to run at least 1 and at most 3.
-- `-k`: number of epochs to save. This saves the epochs with the $k$-most minimum validation losses. 
+- `-l`: language for the T5 model. `en` for English by default, `fr` for French. 
+- `-k`: number of epochs to save. This saves the epochs with the $k$-most minimum validation losses.
 - `-r`: path to a checkpoint to resume training on.
 - `-s`: index of an epoch to save. **Starts at 0 (0 is first epoch)**. Can be provided multiple times.
+- `--learning-rate`: learning rate. 
+- `--max-seq-len`: max token length in a sequence. 
+- `--precision`: precision for Lightning trainer. Could be one of
+  - `64`, `64-true`: 64-bit
+  - `32`, `32-true`: 32-bit
+  - `16`, `16-mixed`: 16-bit --- 5-bit exponent, 10-bit fraction
+  - `bf16`, `bf16-mixed`: 16-bit --- 8-bit exponent, 7-bit fraction
 - `--save-last-epoch`: save the last epoch. 
+- `--seed`: seed for random generation. 
 
 ### Evaluating
 
@@ -78,17 +88,22 @@ Generation result cache files are under `outputs/generated/`.
 Optional arguments: 
 
 - `-d`: path to a JSONL file containing evaluation data. By default, a file associated with the task is used. 
+- `--max-seq-len`: max token length in a sequence. 
 - `--strict`: use a stricter evaluation metric dependent on the task. Might not always have an effect. 
 
 ### Logs
 
-Tensorboard logs can be viewed at [localhost:6006](localhost:6006) by:
+Tensorboard logs can be viewed with
 ```commandline
-tensorboard --logdir=outputs/logs --host=0.0.0.0
+tensorboard --logdir=outputs/logs
 ```
 
-If you're on GU CLI, refer to the [GU CLI remote dev guide](https://github.com/Aatlantise/gu-cli-remote-dev)
-to set up a tunnel to view the logs on your local machine.
+### Future Improvements
 
+There are a number of quality of life improvements that can be made to this project. 
 
+- [ ] Better mechanism to manage test/evaluation runs and logs
+- [ ] Allow in-training evaluation with generation size independent of validation split size
+- [ ] Make progress bars friendly for command-line logs (currently torch progress bars litter the logs and make them borderline unreadable)
+- [ ] Better design to ease implementation of other models and languages
 

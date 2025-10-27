@@ -217,8 +217,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     lang = args.l
     
-    # nltk.download('punkt')
-    # nltk.download('punkt_tab')
+    nltk.download('punkt')
+    nltk.download('punkt_tab')
     random.seed(42)
     ds = Wiki2023(lang = lang)
     ds.to_json('pr', f'wiki-20231101.{lang}-pr')

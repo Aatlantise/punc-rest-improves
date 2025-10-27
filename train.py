@@ -1,5 +1,6 @@
 import lightning
 import numpy as np
+import os
 import random
 import re
 import torch
@@ -13,7 +14,7 @@ from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
 from models.t5 import T5
 from typing import Callable
-from utils import join_path, logger
+from utils import logger
 
 logger = logger(__name__)
 torch.autograd.set_detect_anomaly(True)
@@ -48,7 +49,7 @@ class MyCheckpoint(Callback):
         
         epoch = trainer.current_epoch
         if epoch in self.epochs_to_save_at:
-            ckpt_path = join_path(self.save_dir, '%s%d.ckpt' % (self.name, epoch))
+            ckpt_path = os.path.join(self.save_dir, '%s%d.ckpt' % (self.name, epoch))
             trainer.save_checkpoint(ckpt_path)
             logger.info('Saved checkpoint at %s' % ckpt_path)
 
@@ -108,10 +109,10 @@ def run(
     trainer = Trainer(
         min_epochs = min_epochs,
         max_epochs = max_epochs,
-        logger = TensorBoardLogger(save_dir = join_path(output_dir, 'logs'), name = ckpt_filename),
+        logger = TensorBoardLogger(save_dir = os.path.join(output_dir, 'logs'), name = ckpt_filename),
         callbacks = [
             ModelCheckpoint(
-                dirpath = join_path(output_dir, 'checkpoints'),
+                dirpath = os.path.join(output_dir, 'checkpoints'),
                 filename = '%s-{epoch}-{val_loss:.4f}' % ckpt_filename,
                 save_top_k = save_top_k,
                 verbose = True,
@@ -139,7 +140,7 @@ def run(
     
     if save_last_epoch:
         final_ckpt_name = '%s%d.ckpt' % (ckpt_filename, max_epochs)
-        final_save_path = join_path(output_dir, 'checkpoints', final_ckpt_name)
+        final_save_path = os.path.join(output_dir, 'checkpoints', final_ckpt_name)
         trainer.save_checkpoint(final_save_path)
         logger.info(f'Saved last epoch: {final_save_path}')
     else:

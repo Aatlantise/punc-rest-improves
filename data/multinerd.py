@@ -1,8 +1,9 @@
 import json
+import os
 
 from data.modules import PrepData
 from tasks.ner import process
-from utils import logger, join_path
+from utils import logger
 
 logger = logger(__name__)
 
@@ -14,7 +15,7 @@ class MultiNERD(PrepData):
         """Loads dataset form hugging face"""
         if local_dir:
             super().__init__(hf_dataset = False)
-            path = join_path(local_dir, f'{lang}.jsonl')
+            path = os.path.join(local_dir, f'{lang}.jsonl')
             with open(path, 'r') as f:
                 for line in f:
                     self.data.append(json.loads(line))
@@ -42,5 +43,5 @@ class MultiNERD(PrepData):
 
 
 if __name__ == '__main__':
-    o = MultiNERD(local_dir = '../External Datasets/multinerd')
+    o = MultiNERD()
     o.to_json('ner', 'multinerd.fr-ner')

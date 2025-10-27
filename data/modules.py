@@ -1,4 +1,5 @@
 import json
+import os
 
 from catalog import DATASET_DIR
 from datasets import load_dataset, Dataset
@@ -39,10 +40,10 @@ class PrepData:
     def to_json(self, task: str, name: str = None, path: str = None) -> int:
         """Output data to JSONL
 
-        Default path is `outputs/datasets/` with the jsonl file named after the caller class.
+        Default path is DATASET_DIR with the jsonl file named after the caller class.
         """
         name = name or self.__class__.__name__ + '-' + task
-        path = path or 'outputs/datasets/' + name + '.jsonl'
+        path = path or os.path.join(DATASET_DIR, name + '.jsonl')
         num_lines = 0
         with open(path, 'w', encoding = 'utf-8') as file:
             for source, target in self.src_tgt_pairs(task):

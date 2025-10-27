@@ -1,9 +1,9 @@
 import json
-import re
+import os
 
 from data.modules import PrepData
 from tasks.ner import process
-from utils import logger, progress, join_path
+from utils import logger, progress
 
 logger = logger(__name__)
 
@@ -16,7 +16,7 @@ class Wikiann(PrepData):
             super().__init__(hf_dataset = False)
             splits = ['train', 'dev', 'test']
             for split in splits:
-                path = join_path(local_dir, lang, f'{split}.jsonl')
+                path = os.path.join(local_dir, lang, f'{split}.jsonl')
                 with open(path, 'r') as f:
                     for line in progress(f, 'Wikiann %s %s' % (lang, split)):
                         self.data.append(json.loads(line))

@@ -4,7 +4,6 @@ import re
 import sys
 
 from datetime import datetime
-from os.path import join as join_path, isfile as exist_file
 from pprint import pp
 from tqdm import tqdm
 from typing import Any

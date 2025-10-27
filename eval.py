@@ -1,4 +1,5 @@
 import json
+import os
 
 from argparse import ArgumentParser
 from catalog import get_dataset_path
@@ -6,7 +7,7 @@ from data.modules import TrainData
 from importlib import import_module
 from tasks.ner import score as object_generation_score
 from train import T5
-from utils import logger, clean_split, exist_file
+from utils import logger, clean_split
 
 logger = logger(__name__)
 
@@ -62,7 +63,7 @@ def run(
     path = 'outputs/generated/%s.jsonl' % model_name.split(' ', 1)[0]
     
     texts, outputs, targets = [], [], []
-    if exist_file(path):
+    if os.path.isfile(path):
         logger.info('Restoring outputs from %s.' % path)
         with open(path, 'r') as f:
             for line in f:

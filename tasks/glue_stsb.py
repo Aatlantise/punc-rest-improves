@@ -5,15 +5,15 @@ logger = logger()
 
 def score(texts, outputs, targets, strict: bool = False, printer = print):
     # initialize metrics
-    predictions = 0
-    golds = 0
+    predictions = []
+    golds = []
     total = 0
     failed = 0
 
     for sent, o, t in zip(texts, outputs, targets):
         total += 1
-        printer("gold is: ", t)
-        printer("pred is: ", o)
+        # printer("gold is: ", t)
+        # printer("pred is: ", o)
         try:
             pred = float(o)
             gold = float(t)

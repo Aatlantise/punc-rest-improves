@@ -2,11 +2,13 @@ import json
 import os
 
 from argparse import ArgumentParser
-from data.modules import TrainData
+from data.modules import TrainData, NumericTrainData
 from importlib import import_module
 from tasks.ner import score as object_generation_score
-from train import PRT5
+from train import PRT5, PRT5Numeric
 from utils import logger, clean_split
+import torch
+import numpy as np
 
 logger = logger()
 
@@ -94,11 +96,14 @@ def run(
                 targets.append(obj['target'])
     else:
         logger.info(f'Loading model {model_name} from checkpoint {ckpt_path}')
-        model = PRT5.load_from_checkpoint(ckpt_path)
-        
         logger.info(f'Loading dataset from path {data_path}')
         data_path = data_path or default_data_paths[task]
-        ds = TrainData(data_path)
+        if task in ['glue_stsb']:
+          model = PRT5Numeric.load_from_checkpoint(ckpt_path)
+          ds = NumericTrainData(data_path)
+        else:
+          model = PRT5.load_from_checkpoint(ckpt_path)
+          ds = TrainData(data_path)
         
         logger.info('Initializing dataloader. ')
         dl = ds.loader(
@@ -118,6 +123,10 @@ def run(
                 text = texts[i]
                 output = outputs[i] if i < len(outputs) else None
                 target = targets[i] if i < len(targets) else None
+                if task in ['glue_stsb']:
+                  output = float(output)
+                  target = float(target)
+                  
                 json.dump({'text': text, 'output': output, 'target': target}, f, ensure_ascii = False)
                 f.write('\n')
     

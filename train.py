@@ -4,6 +4,7 @@ import random
 import re
 import torch
 
+from functools import partial
 from argparse import ArgumentParser
 from data.modules import TrainData, NumericTrainData
 from datetime import datetime
@@ -42,6 +43,10 @@ class IndividualCheckpoints(Callback):
             trainer.save_checkpoint(ckpt_path)
             logger.info('Saved checkpoint at %s' % ckpt_path)
 
+def apply_prefix(task, x):
+    # return f"{task}: {x['source']}", x['target']
+    return {"source": f"{task}: {x['source']}", "target" : x['target']}
+
 def run(
     ckpt_filename: str,
     data_path: str,
@@ -79,6 +84,20 @@ def run(
         training_data = NumericTrainData(data_path)
 
     logger.info(f'Loaded training data from {data_path}')
+
+    if (data_path in ['outputs/datasets/cola_train.jsonl',
+                      'outputs/datasets/sst2_train.jsonl',
+                      'outputs/datasets/mrpc_train.jsonl',
+                      'outputs/datasets/stsb_train.jsonl',
+                      'outputs/datasets/qqp_train.jsonl',
+                      'outputs/datasets/mnli_train.jsonl',
+                      'outputs/datasets/qnli_train.jsonl',
+                      'outputs/datasets/rte_train.jsonl',
+                      'outputs/datasets/wnli_train.jsonl']):
+        # apply task prefix:
+        logger.debug(f"Applying task prefix {data_path.split('/')[-1]}")
+        for split in ['train', 'dev', 'test']:
+            training_data.data[split] = [apply_prefix(data_path.split('/')[-1].split('_')[0], x) for x in training_data.data[split]]
     
     
     if (data_path == 'outputs/datasets/stsb_train.jsonl'):

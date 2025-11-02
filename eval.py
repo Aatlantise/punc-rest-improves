@@ -1,6 +1,7 @@
 import json
 import os
 
+from functools import partial
 from argparse import ArgumentParser
 from data.modules import TrainData, NumericTrainData
 from importlib import import_module
@@ -46,6 +47,8 @@ def multitask_score(texts, outputs, targets, printer = print):
     object_generation_score(texts, ner_outputs, ner_targets)
     object_generation_score(texts, oie_outputs, oie_targets)
 
+def apply_prefix(task, x):
+    return {"source": f"{task}: {x['source']}", "target" : x['target']}
 
 def run(
     task: str,
@@ -104,7 +107,20 @@ def run(
         else:
           model = PRT5.load_from_checkpoint(ckpt_path)
           ds = TrainData(data_path)
-        
+          if (data_path in ['outputs/datasets/cola_train.jsonl',
+                      'outputs/datasets/sst2_train.jsonl',
+                      'outputs/datasets/mrpc_train.jsonl',
+                      'outputs/datasets/stsb_train.jsonl',
+                      'outputs/datasets/qqp_train.jsonl',
+                      'outputs/datasets/mnli_train.jsonl',
+                      'outputs/datasets/qnli_train.jsonl',
+                      'outputs/datasets/rte_train.jsonl',
+                      'outputs/datasets/wnli_train.jsonl']):
+              # apply task prefix:
+              logger.debug(f"Applying task prefix {data_path.split('/')[-1]}")
+              for split in ['train', 'dev', 'test']:
+                  ds.data[split] = [apply_prefix(data_path.split('/')[-1].split('_')[0], x) for x in ds.data[split]]
+    
         logger.info('Initializing dataloader. ')
         dl = ds.loader(
             split = 'test',
@@ -132,11 +148,11 @@ def run(
     
     logger.info(f'Evaluating {task} score.')
     if task in ['glue_CoLA', 'glue_sst2', 'glue_mrpc', 'glue_qqp', 'glue_mnli', 'glue_qnli', 'glue_rte', 'glue_wnli']:
-        acc = import_module('tasks.glueAccuracy').score(texts, outputs, targets)
+        Matthew = import_module('tasks.glueAccuracy').score(texts, outputs, targets)
         print(
             f"""
             =============== Evaluation Result ===============
-            Accuracy: {acc}
+            Matthew: {Matthew}
             """
         )
     elif task in ['glue_CoLA']:

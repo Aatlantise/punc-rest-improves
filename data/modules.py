@@ -137,4 +137,52 @@ class NumericTrainData:
         dl = DataLoader(ds, batch_size = eval_batch_size, **kwargs)
         return dl
     
+class IntTrainData:
+    """Reads dataset from jsonl and provides dataloaders that makes labels integers for bert"""
+    
+    def __init__(self, jsonl_path: str):
+        """Read and split dataset in JSONL"""
+        with open(jsonl_path) as jsonl_file:
+            data = []
+            for line in jsonl_file:
+                data.append(json.loads(line))
+        l = len(data)
+        a = int(l * 0.8)
+        b = int(l * 0.9)
+        self.data = {
+            'train': data[:a],
+            'dev': data[a:b],
+            'test': data[b:]
+        }
+    
+        labels = sorted(list({d["target"] for d in data}))
+        self.label2id = {label: i for i, label in enumerate(labels)}
+        self.id2label = {i: label for i, label in enumerate(labels)}
+        self.num_labels = len(labels)
+    
+    def loader(
+        self,
+        split: str,
+        tokenizer,
+        max_seq_length: int,
+        eval_batch_size: int,
+        **kwargs,
+    ):
+        """Dataloader for data with set tokenizer and other parameters"""
+        
+        def preprocess(example):
+            sources = tokenizer(
+                example['source'],
+                max_length = max_seq_length,
+                truncation = True,
+                padding = 'max_length',
+            )
+            sources['labels'] = self.label2id[example['target']]
+            return sources
+        
+        ds = Dataset.from_list(self.data[split]).map(preprocess, batched = False)
+        ds.set_format(type = 'torch', columns = ['input_ids', 'attention_mask', 'labels'])
+        dl = DataLoader(ds, batch_size = eval_batch_size, **kwargs)
+        return dl
+    
     

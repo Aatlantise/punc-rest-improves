@@ -6,12 +6,13 @@ import torch
 
 from functools import partial
 from argparse import ArgumentParser
-from data.modules import TrainData, NumericTrainData
+from data.modules import TrainData, NumericTrainData, IntTrainData
 from datetime import datetime
 from lightning import Callback, Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import TensorBoardLogger
 from models.t5 import PRT5, PRT5Numeric
+from models.felflarebert import felflarebert
 from os.path import join as join_paths
 from utils import logger
 
@@ -77,32 +78,12 @@ def run(
     """Run training on data path"""
     torch.set_float32_matmul_precision('medium')
     set_seed(seed)
-    
-    training_data = TrainData(data_path)
-    if (data_path == 'outputs/datasets/stsb_train.jsonl'):
-        logger.debug("stsb regression")
-        training_data = NumericTrainData(data_path)
 
-    logger.info(f'Loaded training data from {data_path}')
-
-    if (data_path in ['outputs/datasets/cola_train.jsonl',
-                      'outputs/datasets/sst2_train.jsonl',
-                      'outputs/datasets/mrpc_train.jsonl',
-                      'outputs/datasets/stsb_train.jsonl',
-                      'outputs/datasets/qqp_train.jsonl',
-                      'outputs/datasets/mnli_train.jsonl',
-                      'outputs/datasets/qnli_train.jsonl',
-                      'outputs/datasets/rte_train.jsonl',
-                      'outputs/datasets/wnli_train.jsonl']):
-        # apply task prefix:
-        logger.debug(f"Applying task prefix {data_path.split('/')[-1]}")
-        for split in ['train', 'dev', 'test']:
-            training_data.data[split] = [apply_prefix(data_path.split('/')[-1].split('_')[0], x) for x in training_data.data[split]]
-    
-    
-    if (data_path == 'outputs/datasets/stsb_train.jsonl'):
-        logger.debug("stsb regression")
-        model = PRT5Numeric(
+    if "bert" in model_name_or_path.lower():
+        logger.debug("Using bert model, loading IntTrainData")
+        training_data = IntTrainData(data_path)
+        training_data = IntTrainData(data_path)
+        model = felflarebert.load_from_checkpoint(resume_ckpt) if resume_ckpt else felflarebert(
             adam_epsilon = adam_epsilon,
             eval_batch_size = eval_batch_size,
             learning_rate = learning_rate,
@@ -113,37 +94,76 @@ def run(
             train_batch_size = train_batch_size,
             warmup_steps = warmup_steps,
             weight_decay = weight_decay,
+            num_labels = training_data.num_labels,
         )
-        if resume_ckpt:
-            ckpt = torch.load(resume_ckpt, map_location='cpu')
-            PR_model = PRT5.load_from_checkpoint(resume_ckpt)
-            model.model.load_state_dict(PR_model.state_dict(), strict=False)
-        # Did not have regression head for PR training
-        # model = PRT5Numeric.load_from_checkpoint(resume_ckpt) if resume_ckpt else PRT5Numeric(
-        #     adam_epsilon = adam_epsilon,
-        #     eval_batch_size = eval_batch_size,
-        #     learning_rate = learning_rate,
-        #     max_seq_length = max_seq_length,
-        #     model = model_name_or_path,
-        #     num_train_epochs = num_train_epochs,
-        #     num_workers = num_workers,
-        #     train_batch_size = train_batch_size,
-        #     warmup_steps = warmup_steps,
-        #     weight_decay = weight_decay,
-        # )
+        logger.info("felflare bert model being used (overwrites previous model)")
     else:
-        model = PRT5.load_from_checkpoint(resume_ckpt) if resume_ckpt else PRT5(
-            adam_epsilon = adam_epsilon,
-            eval_batch_size = eval_batch_size,
-            learning_rate = learning_rate,
-            max_seq_length = max_seq_length,
-            model = model_name_or_path,
-            num_train_epochs = num_train_epochs,
-            num_workers = num_workers,
-            train_batch_size = train_batch_size,
-            warmup_steps = warmup_steps,
-            weight_decay = weight_decay,
-        )
+        training_data = TrainData(data_path)
+        if (data_path == 'outputs/datasets/stsb_train.jsonl'):
+            logger.debug("stsb regression")
+            training_data = NumericTrainData(data_path)
+
+        logger.info(f'Loaded training data from {data_path}')
+
+        if (data_path in ['outputs/datasets/cola_train.jsonl',
+                        'outputs/datasets/sst2_train.jsonl',
+                        'outputs/datasets/mrpc_train.jsonl',
+                        'outputs/datasets/stsb_train.jsonl',
+                        'outputs/datasets/qqp_train.jsonl',
+                        'outputs/datasets/mnli_train.jsonl',
+                        'outputs/datasets/qnli_train.jsonl',
+                        'outputs/datasets/rte_train.jsonl',
+                        'outputs/datasets/wnli_train.jsonl']):
+            # apply task prefix:
+            logger.debug(f"Applying task prefix {data_path.split('/')[-1]}")
+            for split in ['train', 'dev', 'test']:
+                training_data.data[split] = [apply_prefix(data_path.split('/')[-1].split('_')[0], x) for x in training_data.data[split]]
+        
+        
+        if (data_path == 'outputs/datasets/stsb_train.jsonl'):
+            logger.debug("stsb regression")
+            model = PRT5Numeric(
+                adam_epsilon = adam_epsilon,
+                eval_batch_size = eval_batch_size,
+                learning_rate = learning_rate,
+                max_seq_length = max_seq_length,
+                model = model_name_or_path,
+                num_train_epochs = num_train_epochs,
+                num_workers = num_workers,
+                train_batch_size = train_batch_size,
+                warmup_steps = warmup_steps,
+                weight_decay = weight_decay,
+            )
+            if resume_ckpt:
+                ckpt = torch.load(resume_ckpt, map_location='cpu')
+                PR_model = PRT5.load_from_checkpoint(resume_ckpt)
+                model.model.load_state_dict(PR_model.state_dict(), strict=False)
+            # Did not have regression head for PR training
+            # model = PRT5Numeric.load_from_checkpoint(resume_ckpt) if resume_ckpt else PRT5Numeric(
+            #     adam_epsilon = adam_epsilon,
+            #     eval_batch_size = eval_batch_size,
+            #     learning_rate = learning_rate,
+            #     max_seq_length = max_seq_length,
+            #     model = model_name_or_path,
+            #     num_train_epochs = num_train_epochs,
+            #     num_workers = num_workers,
+            #     train_batch_size = train_batch_size,
+            #     warmup_steps = warmup_steps,
+            #     weight_decay = weight_decay,
+            # )
+        else:
+            model = PRT5.load_from_checkpoint(resume_ckpt) if resume_ckpt else PRT5(
+                adam_epsilon = adam_epsilon,
+                eval_batch_size = eval_batch_size,
+                learning_rate = learning_rate,
+                max_seq_length = max_seq_length,
+                model = model_name_or_path,
+                num_train_epochs = num_train_epochs,
+                num_workers = num_workers,
+                train_batch_size = train_batch_size,
+                warmup_steps = warmup_steps,
+                weight_decay = weight_decay,
+            )
     
       
     model.store_data(training_data)
@@ -187,7 +207,7 @@ def run(
     try:
         trainer.test(model, dataloaders = training_data.loader(
             split = 'test',
-            tokenizer = model.tokenizer(),
+            tokenizer = model.tokenizer,
             max_seq_length = max_seq_length,
             eval_batch_size = eval_batch_size,
             num_workers = num_workers,
@@ -203,6 +223,11 @@ if __name__ == '__main__':
         'task',
         type = str,
         help = 'The training task to perform.',
+    )
+    parser.add_argument(
+        '-m', '--model-name-or-path',
+        type = str, default = 'google-t5/t5-base',
+        help = 'The model name or path to use.',
     )
     parser.add_argument(
         '-n', '--ckpt-name',
@@ -314,4 +339,5 @@ if __name__ == '__main__':
         min_epochs = min_epochs,
         max_epochs = max_epochs,
         save_top_k = args.save_top_k,
+        model_name_or_path = args.model_name_or_path,
     )

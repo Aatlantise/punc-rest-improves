@@ -3,10 +3,10 @@ import os
 
 from functools import partial
 from argparse import ArgumentParser
-from data.modules import TrainData, NumericTrainData
+from data.modules import TrainData, NumericTrainData, IntTrainData
 from importlib import import_module
 from tasks.ner import score as object_generation_score
-from train import PRT5, PRT5Numeric
+from train import PRT5, PRT5Numeric, felflarebert
 from utils import logger, clean_split
 import torch
 import numpy as np
@@ -101,7 +101,10 @@ def run(
         logger.info(f'Loading model {model_name} from checkpoint {ckpt_path}')
         logger.info(f'Loading dataset from path {data_path}')
         data_path = data_path or default_data_paths[task]
-        if task in ['glue_stsb']:
+        if "bert" in model_name.lower():
+            model = felflarebert.load_from_checkpoint(ckpt_path)
+            ds = IntTrainData(data_path)
+        elif task in ['glue_stsb']:
           model = PRT5Numeric.load_from_checkpoint(ckpt_path)
           ds = NumericTrainData(data_path)
         else:
@@ -148,11 +151,11 @@ def run(
     
     logger.info(f'Evaluating {task} score.')
     if task in ['glue_CoLA', 'glue_sst2', 'glue_mrpc', 'glue_qqp', 'glue_mnli', 'glue_qnli', 'glue_rte', 'glue_wnli']:
-        Matthew = import_module('tasks.glueAccuracy').score(texts, outputs, targets)
+        accuracy = import_module('tasks.glueAccuracy').score(texts, outputs, targets)
         print(
             f"""
             =============== Evaluation Result ===============
-            Matthew: {Matthew}
+            Accuracy: {accuracy}
             """
         )
     elif task in ['glue_CoLA']:

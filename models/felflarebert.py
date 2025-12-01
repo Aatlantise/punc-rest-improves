@@ -54,6 +54,7 @@ class felflarebert(LightningModule):
         self.model = AutoModelForSequenceClassification.from_pretrained(
             model,
             num_labels = self.num_labels,
+            ignore_mismatched_sizes = True,
         ) 
 
         self.outputs = []
@@ -200,3 +201,38 @@ class felflarebert(LightningModule):
         torch.save(self.state_dict(), path)
         logger.info(f'Saved model to {path}')
     
+    def _generate(self, input_dataloader):
+        id2label = self.model.config.id2label
+        texts, outputs, targets = [], [], []
+        with torch.no_grad():
+            for batch in tqdm(input_dataloader):
+                input_ids = batch['input_ids'].to("cuda")
+                attention_mask = batch['attention_mask'].to("cuda")
+                labels = batch['labels'].to("cuda")
+
+                batch_texts = self.tokenizer.batch_decode(input_ids, skip_special_tokens=True)
+                batch_texts = [text.strip() for text in batch_texts]
+                # batch['text'] invalid key
+
+                model_outputs = self(
+                    input_ids = input_ids,
+                    attention_mask = attention_mask,
+                    labels = labels
+                )
+                
+                logits = model_outputs.logits
+                predictions = torch.argmax(logits, dim = -1)
+                
+                predictions = [id2label[pred.item()] for pred in predictions]
+
+                mytargets = [id2label[label.item()] for label in labels]
+
+                texts.extend(batch_texts)
+                outputs.extend(predictions)
+                targets.extend(mytargets)
+        return texts, outputs, targets
+    
+    def generate(self, input_dataloader: DataLoader):
+        # tuple[list[str], list[str], list[str]]
+        self.model.eval()
+        return self.to('cuda')._generate(input_dataloader)

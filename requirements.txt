@@ -1,0 +1,7 @@
+transformers
+datasets
+tqdm
+torch
+ftfy
+numpy
+accelerate>=0.26.0

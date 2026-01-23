@@ -18,7 +18,7 @@ OVERLAP = 100
 STRIDE = MAX_SEQ_LENGTH - OVERLAP  # How much we advance the window
 BATCH_SIZE = 16
 LEARNING_RATE = 3e-4
-EPOCHS = 3
+EPOCHS = 30
 OUTPUT_DIR = "/home/jm3743/pr-t5/pr-t5"
 LOGGING_DIR = "/home/jm3743/pr-t5/logs"
 
@@ -171,7 +171,7 @@ def main():
 
     # Save the test set to disk for the evaluation script to use
     print("Saving test dataset for evaluation...")
-    test_dataset.save_to_disk(f"{DATASET_DIR}/test_data")
+    test_dataset.save_to_disk(f"{DATASET_DIR}/test")
 
 
 if __name__ == "__main__":

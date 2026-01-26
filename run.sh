@@ -16,5 +16,4 @@ source env.sh
 #############################################################
 
 echo "Job Array ID / Job ID: $SLURM_ARRAY_JOB_ID / $SLURM_JOB_ID"
-#python main.py >> train.log
-python eval.py >> eval.log
+python main.py >> train.log

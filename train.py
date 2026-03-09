@@ -329,6 +329,7 @@ if __name__ == '__main__':
     logger.debug(f"Saving top {args.save_top_k} epochs")
     logger.debug(f"Whether to save last epoch: {args.save_last_epoch}")
     logger.debug(f"Epochs to run: min {min_epochs}, max {max_epochs}")
+    print("model_name_or_path", args.model_name_or_path, "and resume_ckpt", args.resume_ckpt, "\n\n")
     
     run(
         data_path = args.dataset_jsonl or default_data_paths[args.task],

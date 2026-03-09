@@ -10,8 +10,10 @@ from transformers import (
     PreTrainedModel,
     T5ForConditionalGeneration,
     T5TokenizerFast,
+    T5Tokenizer,
     get_scheduler,
     T5EncoderModel,
+    AutoTokenizer
 )
 from typing import Callable, Union
 from utils import logger
@@ -39,7 +41,7 @@ class PRT5(LightningModule):
         super().__init__()
         self.save_hyperparameters()
         self.model = T5ForConditionalGeneration.from_pretrained(model)
-        self.tokenizer = T5TokenizerFast.from_pretrained(model)
+        self.tokenizer = AutoTokenizer.from_pretrained(model)
         self.outputs = []
         self.training_data: Union[TrainData, None] = None
     

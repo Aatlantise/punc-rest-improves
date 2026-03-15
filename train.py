@@ -78,11 +78,28 @@ def run(
     """Run training on data path"""
     torch.set_float32_matmul_precision('medium')
     set_seed(seed)
+    
+    glue_datasets = ['outputs/datasets/cola_train.jsonl',
+                    'outputs/datasets/sst2_train.jsonl',
+                    'outputs/datasets/mrpc_train.jsonl',
+                    'outputs/datasets/stsb_train.jsonl',
+                    'outputs/datasets/qqp_train.jsonl',
+                    # 'outputs/datasets/mnli_train_.jsonl', # this dataset's has two test sets matched and mismatched so ignore for now
+                    'outputs/datasets/mnli_matched_train_.jsonl', # these are just copies of mnli_train
+                    'outputs/datasets/mnli_mismatched_train_.jsonl',
+                    'outputs/datasets/qnli_train.jsonl',
+                    'outputs/datasets/rte_train.jsonl',
+                    'outputs/datasets/wnli_train.jsonl']
 
     if "bert" in model_name_or_path.lower():
         logger.debug("Using bert model, loading IntTrainData")
-        training_data = IntTrainData(data_path)
-        training_data = IntTrainData(data_path)
+        if data_path in glue_datsets:
+          dev_path = data_path.replace("_train.jsonl", "_dev.jsonl")
+          training_data = IntTrainData(data_path, dev_path)
+          print("glue dataset loaded")
+        else:
+          training_data = IntTrainData(data_path)
+        # training_data = IntTrainData(data_path)
         model = felflarebert.load_from_checkpoint(resume_ckpt) if resume_ckpt else felflarebert(
             adam_epsilon = adam_epsilon,
             eval_batch_size = eval_batch_size,
@@ -98,22 +115,21 @@ def run(
         )
         logger.info("felflare bert model being used (overwrites previous model)")
     else:
-        training_data = TrainData(data_path)
+        if data_path in glue_datasets:
+            dev_path = data_path.replace("_train.jsonl", "_dev.jsonl")
+            training_data = TrainData(data_path, dev_path)
+            # print("glue dataset loaded")
+        else:
+            training_data = TrainData(data_path)
+        
         if (data_path == 'outputs/datasets/stsb_train.jsonl'):
             logger.debug("stsb regression")
-            training_data = NumericTrainData(data_path)
-
+            dev_path = data_path.replace("_train.jsonl", "_dev.jsonl")
+            training_data = NumericTrainData(data_path, dev_path)
+            print("glue dataset loaded")
         logger.info(f'Loaded training data from {data_path}')
 
-        if (data_path in ['outputs/datasets/cola_train.jsonl',
-                        'outputs/datasets/sst2_train.jsonl',
-                        'outputs/datasets/mrpc_train.jsonl',
-                        'outputs/datasets/stsb_train.jsonl',
-                        'outputs/datasets/qqp_train.jsonl',
-                        'outputs/datasets/mnli_train.jsonl',
-                        'outputs/datasets/qnli_train.jsonl',
-                        'outputs/datasets/rte_train.jsonl',
-                        'outputs/datasets/wnli_train.jsonl']):
+        if (data_path in glue_datasets):
             # apply task prefix:
             logger.debug(f"Applying task prefix {data_path.split('/')[-1]}")
             for split in ['train', 'dev', 'test']:
@@ -301,7 +317,8 @@ if __name__ == '__main__':
         'glue_mrpc': 'outputs/datasets/mrpc_train.jsonl',
         'glue_stsb': 'outputs/datasets/stsb_train.jsonl',
         'glue_qqp': 'outputs/datasets/qqp_train.jsonl',
-        'glue_mnli': 'outputs/datasets/mnli_train.jsonl',
+        'glue_mnli_matched': 'outputs/datasets/mnli_matched_train.jsonl',
+        'glue_mnli_mismatched': 'outputs/datasets/mnli_mismatched_train.jsonl',
         'glue_qnli': 'outputs/datasets/qnli_train.jsonl',
         'glue_rte': 'outputs/datasets/rte_train.jsonl',
         'glue_wnli': 'outputs/datasets/wnli_train.jsonl',

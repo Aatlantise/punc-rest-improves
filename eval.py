@@ -62,7 +62,7 @@ def run(
 ):
     if task not in ['srl', 'pos', 'oie', 'ner', 're', 'chunking', 'pr', 'sbd',
                     'glue_CoLA', 'glue_sst2', 'glue_mrpc', 'glue_stsb', 'glue_qqp',
-                    'glue_mnli', 'glue_qnli', 'glue_rte', 'glue_wnli']:
+                    'glue_mnli_matched', 'glue_mnli_mismatched', 'glue_qnli', 'glue_rte', 'glue_wnli']:
         raise NotImplementedError(task)
     
     print(f"=============== Model {model_name} {task} Evaluation ===============")
@@ -82,13 +82,27 @@ def run(
         'glue_mrpc': 'outputs/datasets/mrpc_train.jsonl',
         'glue_stsb': 'outputs/datasets/stsb_train.jsonl',
         'glue_qqp': 'outputs/datasets/qqp_train.jsonl',
-        'glue_mnli': 'outputs/datasets/mnli_train.jsonl',
+        # 'glue_mnli': 'outputs/datasets/mnli_train.jsonl',
+        'glue_mnli_matched': 'outputs/datasets/mnli_matched_train.jsonl',
+        'glue_mnli_mismatched': 'outputs/datasets/mnli_mismatched_train.jsonl',
         'glue_qnli': 'outputs/datasets/qnli_train.jsonl',
         'glue_rte': 'outputs/datasets/rte_train.jsonl',
         'glue_wnli': 'outputs/datasets/wnli_train.jsonl',
     }
     
     texts, outputs, targets = [], [], []
+    glue_datasets = ['outputs/datasets/cola_train.jsonl',
+                    'outputs/datasets/sst2_train.jsonl',
+                    'outputs/datasets/mrpc_train.jsonl',
+                    'outputs/datasets/stsb_train.jsonl',
+                    'outputs/datasets/qqp_train.jsonl',
+                    # 'outputs/datasets/mnli_train.jsonl', # this dataset's has two test sets, so make two copies of training set
+                    'outputs/datasets/mnli_matched_train.jsonl',
+                    'outputs/datasets/mnli_mismatched_train.jsonl',
+                    'outputs/datasets/qnli_train.jsonl',
+                    'outputs/datasets/rte_train.jsonl',
+                    'outputs/datasets/wnli_train.jsonl']
+                    
     if os.path.isfile(path):
         logger.info('Restoring outputs from %s.' % path)
         with open(path, 'r') as f:
@@ -103,14 +117,26 @@ def run(
         data_path = data_path or default_data_paths[task]
         if "bert" in model_name.lower():
             model = felflarebert.load_from_checkpoint(ckpt_path)
-            ds = IntTrainData(data_path)
+            if data_path in glue_datasets:
+              dev_path = data_path.replace("_train.jsonl", "_dev.jsonl")
+              ds = IntTrainData(data_path, dev_path)
+            else:
+              ds = IntTrainData(data_path)
         elif task in ['glue_stsb']:
-          model = PRT5Numeric.load_from_checkpoint(ckpt_path)
-          ds = NumericTrainData(data_path)
+            model = PRT5Numeric.load_from_checkpoint(ckpt_path)
+            if data_path in glue_datasets:
+                dev_path = data_path.replace("_train.jsonl", "_dev.jsonl")
+                ds = NumericTrainData(data_path, dev_path)
+            else:
+                ds = NumericTrainData(data_path)
         else:
-          model = PRT5.load_from_checkpoint(ckpt_path)
-          ds = TrainData(data_path)
-          if (data_path in ['outputs/datasets/cola_train.jsonl',
+            model = PRT5.load_from_checkpoint(ckpt_path)
+            if data_path in glue_datasets:
+                dev_path = data_path.replace("_train.jsonl", "_dev.jsonl")
+                ds = TrainData(data_path, dev_path)
+            else:
+                ds = TrainData(data_path)
+        if (data_path in ['outputs/datasets/cola_train.jsonl',
                       'outputs/datasets/sst2_train.jsonl',
                       'outputs/datasets/mrpc_train.jsonl',
                       'outputs/datasets/stsb_train.jsonl',
@@ -119,10 +145,10 @@ def run(
                       'outputs/datasets/qnli_train.jsonl',
                       'outputs/datasets/rte_train.jsonl',
                       'outputs/datasets/wnli_train.jsonl']):
-              # apply task prefix:
-              logger.debug(f"Applying task prefix {data_path.split('/')[-1]}")
-              for split in ['train', 'dev', 'test']:
-                  ds.data[split] = [apply_prefix(data_path.split('/')[-1].split('_')[0], x) for x in ds.data[split]]
+            # apply task prefix:
+            logger.debug(f"Applying task prefix {data_path.split('/')[-1]}")
+            for split in ['train', 'dev', 'test']:
+                ds.data[split] = [apply_prefix(data_path.split('/')[-1].split('_')[0], x) for x in ds.data[split]]
     
         logger.info('Initializing dataloader. ')
         dl = ds.loader(

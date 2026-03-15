@@ -46,20 +46,31 @@ class PrepData:
 class TrainData:
     """Reads dataset from jsonl and provides dataloaders for training"""
     
-    def __init__(self, jsonl_path: str):
+    def __init__(self, jsonl_path: str, jsonl_path_glue_valid: str = ""):
         """Read and split dataset in JSONL"""
         with open(jsonl_path) as jsonl_file:
             data = []
             for line in jsonl_file:
                 data.append(json.loads(line))
-        l = len(data)
-        a = int(l * 0.8)
-        b = int(l * 0.9)
-        self.data = {
-            'train': data[:a],
-            'dev': data[a:b],
-            'test': data[b:]
-        }
+        if jsonl_path_glue_valid == "":
+          l = len(data)
+          a = int(l * 0.8)
+          b = int(l * 0.9)
+          self.data = {
+              'train': data[:a],
+              'dev': data[a:b],
+              'test': data[b:]
+          }
+        else:
+          with open(jsonl_path_glue_valid) as jsonl_file:
+            data_test = []
+            for line in jsonl_file:
+                data_test.append(json.loads(line))
+          self.data = {
+              'train': data,
+              'dev': data_test,
+              'test': data_test          
+          }
     
     def loader(
         self,
@@ -96,20 +107,31 @@ class TrainData:
 class NumericTrainData:
     """Reads dataset from jsonl and provides dataloaders for training"""
     
-    def __init__(self, jsonl_path: str):
+    def __init__(self, jsonl_path: str, jsonl_path_glue_valid: str = ""):
         """Read and split dataset in JSONL"""
         with open(jsonl_path) as jsonl_file:
             data = []
             for line in jsonl_file:
                 data.append(json.loads(line))
-        l = len(data)
-        a = int(l * 0.8)
-        b = int(l * 0.9)
-        self.data = {
-            'train': data[:a],
-            'dev': data[a:b],
-            'test': data[b:]
-        }
+        if jsonl_path_glue_valid == "":
+          l = len(data)
+          a = int(l * 0.8)
+          b = int(l * 0.9)
+          self.data = {
+              'train': data[:a],
+              'dev': data[a:b],
+              'test': data[b:]
+          }
+        else:
+          with open(jsonl_path_glue_valid) as jsonl_file:
+            data_test = []
+            for line in jsonl_file:
+                data_test.append(json.loads(line))
+          self.data = {
+              'train': data,
+              'dev': data_test,
+              'test': data_test          
+          }
     
     def loader(
         self,
@@ -140,20 +162,31 @@ class NumericTrainData:
 class IntTrainData:
     """Reads dataset from jsonl and provides dataloaders that makes labels integers for bert"""
     
-    def __init__(self, jsonl_path: str):
+    def __init__(self, jsonl_path: str, jsonl_path_glue_valid : str = ""):
         """Read and split dataset in JSONL"""
         with open(jsonl_path) as jsonl_file:
             data = []
             for line in jsonl_file:
                 data.append(json.loads(line))
-        l = len(data)
-        a = int(l * 0.8)
-        b = int(l * 0.9)
-        self.data = {
-            'train': data[:a],
-            'dev': data[a:b],
-            'test': data[b:]
-        }
+        if jsonl_path_glue_valid == "":
+          l = len(data)
+          a = int(l * 0.8)
+          b = int(l * 0.9)
+          self.data = {
+              'train': data[:a],
+              'dev': data[a:b],
+              'test': data[b:]
+          }
+        else:
+          with open(jsonl_path_glue_valid) as jsonl_file:
+            data_test = []
+            for line in jsonl_file:
+                data_test.append(json.loads(line))
+          self.data = {
+              'train': data,
+              'dev': data_test,
+              'test': data_test          
+          }
     
         labels = sorted(list({d["target"] for d in data}))
         self.label2id = {label: i for i, label in enumerate(labels)}

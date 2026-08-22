@@ -84,9 +84,9 @@ def run(
                     'outputs/datasets/mrpc_train.jsonl',
                     'outputs/datasets/stsb_train.jsonl',
                     'outputs/datasets/qqp_train.jsonl',
-                    # 'outputs/datasets/mnli_train_.jsonl', # this dataset's has two test sets matched and mismatched so ignore for now
-                    'outputs/datasets/mnli_matched_train_.jsonl', # these are just copies of mnli_train
-                    'outputs/datasets/mnli_mismatched_train_.jsonl',
+                    # 'outputs/datasets/mnli_train.jsonl', # this dataset's has two test sets matched and mismatched so ignore for now
+                    'outputs/datasets/mnli_matched_train.jsonl', # these are just copies of mnli_train
+                    'outputs/datasets/mnli_mismatched_train.jsonl',
                     'outputs/datasets/qnli_train.jsonl',
                     'outputs/datasets/rte_train.jsonl',
                     'outputs/datasets/wnli_train.jsonl']

@@ -141,7 +141,9 @@ def run(
                       'outputs/datasets/mrpc_train.jsonl',
                       'outputs/datasets/stsb_train.jsonl',
                       'outputs/datasets/qqp_train.jsonl',
-                      'outputs/datasets/mnli_train.jsonl',
+                      # 'outputs/datasets/mnli_train.jsonl',
+                      'outputs/datasets/mnli_matched_train.jsonl',
+                      'outputs/datasets/mnli_mismatched_train.jsonl',
                       'outputs/datasets/qnli_train.jsonl',
                       'outputs/datasets/rte_train.jsonl',
                       'outputs/datasets/wnli_train.jsonl']):
@@ -176,7 +178,7 @@ def run(
                 f.write('\n')
     
     logger.info(f'Evaluating {task} score.')
-    if task in ['glue_CoLA', 'glue_sst2', 'glue_mrpc', 'glue_qqp', 'glue_mnli', 'glue_qnli', 'glue_rte', 'glue_wnli']:
+    if task in ['glue_CoLA', 'glue_sst2', 'glue_mrpc', 'glue_qqp', 'glue_mnli', 'glue_qnli', 'glue_rte', 'glue_wnli', 'glue_mnli_matched', 'glue_mnli_mismatched']:
         accuracy = import_module('tasks.glueAccuracy').score(texts, outputs, targets)
         print(
             f"""

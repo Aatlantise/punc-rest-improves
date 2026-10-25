@@ -15,13 +15,7 @@ import torch
 from transformers import set_seed
 
 import random
-SEED = 2
-
-random.seed(SEED)
-np.random.seed(SEED)
-torch.manual_seed(SEED)
-set_seed(SEED)
-
+import csv
 
 
 print("CUDA available:", torch.cuda.is_available())
@@ -31,8 +25,6 @@ if torch.cuda.is_available():
 
 
 def fine_tune_and_eval(model_name, task, epochs, batch):
-    set_seed(SEED)
-
     print(f"\n===== Training {model_name} on {task} =====")
 
     # Since test set labels unavailable, use train data
@@ -175,15 +167,64 @@ if __name__ == "__main__":
 
     # list of models to compare
     model_list = [
-        "pr-bert-financial-news-continued"
+        # "pr-bert-financial-news-continued"
+        "bert-base-uncased"
     ]
 
     all_results = {}
 
     for model in model_list:
-        results = fine_tune_and_eval(model, args.task, args.epochs, args.batch)
-        all_results[model] = results
+        all_results[model] = {}
+        for seed in [1,2,3]:
+            SEED = seed
 
-    print("\n======== FINAL COMPARISON ========")
-    for model, res in all_results.items():
-        print(f"\n{model}:\n{res}")
+            random.seed(SEED)
+            np.random.seed(SEED)
+            torch.manual_seed(SEED)
+            set_seed(SEED)
+            
+            print(f"seed {SEED}")
+            results = fine_tune_and_eval(model, args.task, args.epochs, args.batch)
+            all_results[model][seed] = results
+
+    print("\n======== FINAL RESULTS ========")
+
+#    for model, seed_results in all_results.items():
+#        for seed, results in seed_results.items():
+#            print(f"{model}, seed {seed}: {results}")
+    csv_file = "bert_glue_results.csv"
+    write_header = not os.path.exists(csv_file)
+    
+    with open(csv_file, "a", newline="") as f:
+        fieldnames = [
+            "model",
+            "task",
+            "seed",
+            "accuracy",
+            "f1",
+            "matthews_correlation",
+            "pearson",
+            "spearmanr",
+        ]
+    
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+    
+        if write_header:
+            writer.writeheader()
+    
+        for model, seed_results in all_results.items():
+            for seed, results in seed_results.items():
+                writer.writerow({
+                    "model": model,
+                    "task": args.task,
+                    "seed": seed,
+                    "accuracy": results.get("accuracy", ""),
+                    "f1": results.get("f1", ""),
+                    "matthews_correlation": results.get(
+                        "matthews_correlation", ""
+                    ),
+                    "pearson": results.get("pearson", ""),
+                    "spearmanr": results.get("spearmanr", ""),
+                })
+    
+    print(f"Results saved to {csv_file}")

@@ -14,13 +14,6 @@ import random
 
 from transformers import set_seed
 
-SEED = 2
-
-random.seed(SEED)
-np.random.seed(SEED)
-torch.manual_seed(SEED)
-set_seed(SEED)
-
 
 
 print("CUDA available:", torch.cuda.is_available())
@@ -30,7 +23,6 @@ if torch.cuda.is_available():
 MAX_LEN = 128
 
 def fine_tune_and_eval(model_name, task, epochs, batch):
-    set_seed(SEED)
     print(f"\n===== Training {model_name} on {task} =====")
 
     # Since test set labels unavailable, use train data
@@ -176,16 +168,34 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # list of models to compare
+    #model_list = [
+    #    "./pr-gpt2-output"
+    #    "gpt2-medium"
+    #]
     model_list = [
         "./pr-gpt2-output"
     ]
 
+
     all_results = {}
-
+        
     for model in model_list:
-        results = fine_tune_and_eval(model, args.task, args.epochs, args.batch)
-        all_results[model] = results
+        all_results[model] = {}
+        for seed in [1,2,3]:
+            SEED = seed
+            random.seed(SEED)
+            np.random.seed(SEED)
+            torch.manual_seed(SEED)
+            set_seed(SEED)
+            
+            print(f"seed {SEED}")
+            results = fine_tune_and_eval(model, args.task, args.epochs, args.batch)
+            all_results[model][seed] = results
+            
+    
 
-    print("\n======== FINAL COMPARISON ========")
-    for model, res in all_results.items():
-        print(f"\n{model}:\n{res}")
+    print("\n======== FINAL RESULTS ========")
+
+    for model, seed_results in all_results.items():
+        for seed, results in seed_results.items():
+            print(f"{model}, seed {seed}: {results}")

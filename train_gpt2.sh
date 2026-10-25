@@ -3,7 +3,7 @@
 #SBATCH --account=def-annielee
 #SBATCH --gpus=h100:1
 #SBATCH --mem=64G
-#SBATCH --time=70:00:00
+#SBATCH --time=80:00:00
 #SBATCH --mail-user=mjzhou@andrew.cmu.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --cpus-per-task=4
